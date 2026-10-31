@@ -1,0 +1,19 @@
+# Dependencias y compilación
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Logs y pruebas
+*.log
+coverage/
+playwright-report/
+test-results/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
