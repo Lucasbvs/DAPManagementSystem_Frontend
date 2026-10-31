@@ -1,33 +1,36 @@
-# DAP Elegancia · Backend
+# DAP Elegancia · Frontend
 
-API de DAP Elegancia, un sistema web para administrar el inventario de vestidos de una tienda. Centraliza los modelos, sus variantes, existencias, precios y propietarios, y sincroniza los cambios entre dispositivos autorizados.
+Aplicación web de DAP Elegancia para administrar el inventario de vestidos desde computadoras y dispositivos móviles. Permite consultar modelos, controlar existencias por variante y mantener la información sincronizada entre las sesiones autorizadas.
 
-El backend y el frontend se mantienen en repositorios independientes y se comunican mediante HTTP. La base de datos PostgreSQL se denomina `DAP_db`.
+Este repositorio contiene exclusivamente el frontend. La API se mantiene en `DAPManagementSystem_Backend`, como repositorio independiente. El navegador se comunica con la API y no accede directamente a PostgreSQL.
 
-## Alcance
+## Funcionalidades
 
-- Autenticación privada con correo y contraseña, JWT y verificación de cuentas activas.
-- Registro, consulta, edición y eliminación de vestidos y variantes.
-- Numeración automática de vestidos mediante una secuencia PostgreSQL.
-- Variantes por color y talla opcional, con existencias independientes.
-- Cálculo del stock total de cada modelo.
-- Precio unitario obligatorio; precios de cuarta y media docena opcionales.
-- Asociación de cada modelo con su propietario.
-- Notificaciones de cambios mediante Server-Sent Events (SSE).
-- Administración de cuentas desde la consola del servidor.
+- Inicio de sesión privado y opción de mantener la sesión iniciada.
+- Estadísticas de modelos registrados, vestidos disponibles y stock bajo.
+- Búsqueda por nombre o descripción.
+- Registro y edición de vestidos con propietario, descripción y precios.
+- Variantes por color, talla opcional y cantidad disponible.
+- Numeración automática asignada por el backend.
+- Selección múltiple y eliminación con confirmación.
+- Edición de un vestido seleccionado a la vez.
+- Avisos de éxito que se cierran automáticamente después de dos segundos.
+- Tabla en escritorio y tarjetas en móvil, con desplazamiento interno de la lista.
+- Navegación inferior en celular y menú lateral en escritorio.
+- Actualización automática del inventario y sus estadísticas entre dispositivos.
 
-Ventas y contabilidad cuentan con un modelo de datos preparado, pero sus operaciones de negocio aún no están implementadas.
+El módulo activo es Inventario. Ventas y Contabilidad aparecen como secciones previstas para siguientes etapas.
 
 ## Tecnologías
 
-Node.js, TypeScript, Express 5, Prisma ORM 7, PostgreSQL, Zod, JSON Web Tokens y bcrypt. pgAdmin 4 puede utilizarse para administrar PostgreSQL.
+React 19, TypeScript, Vite, Tailwind CSS y Axios. La identidad visual utiliza la paleta verde de DAP Elegancia y las tipografías Manrope y Lora.
 
 ## Requisitos
 
 - Node.js 22.12 o superior compatible con las dependencias.
 - npm.
-- PostgreSQL 15 o superior.
-- Una base de datos vacía llamada `DAP_db` para la instalación inicial.
+- API de DAP Elegancia en ejecución.
+- Una cuenta activa creada desde el backend.
 
 ## Instalación
 
@@ -43,143 +46,80 @@ Copiar `.env.example` a `.env`. En PowerShell:
 Copy-Item .env.example .env
 ```
 
-Configurar las variables:
+Configurar la dirección de la API:
 
-| Variable | Descripción |
-| --- | --- |
-| `DATABASE_URL` | Conexión PostgreSQL a `DAP_db`. |
-| `PORT` | Puerto de la API; por defecto, `3000`. |
-| `CORS_ORIGIN` | Origen permitido del frontend, por ejemplo `http://localhost:5173`. |
-| `JWT_SECRET` | Secreto aleatorio de al menos 32 caracteres. |
-| `ADMIN_EMAIL` | Correo de la cuenta inicial creada por el seed. |
-| `ADMIN_PASSWORD` | Contraseña inicial segura para el seed. |
-| `NODE_ENV` | Entorno de ejecución. |
-
-Generar un secreto:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```dotenv
+VITE_API_URL=http://localhost:3000/api
 ```
 
-Crear la base de datos desde pgAdmin, conectado a `postgres`, ejecutando `database/00_create_database.sql`. Después aplicar las migraciones y los datos iniciales:
+En el backend, permitir el origen del frontend mediante `CORS_ORIGIN=http://localhost:5173`.
 
 ```bash
-npm run db:generate
-npm run db:migrate
-npm run db:seed
 npm run dev
 ```
 
-API local: `http://localhost:3000/api`. El seed registra la cuenta inicial y los propietarios Ana y Dylan; no crea vestidos de demostración ni reemplaza contraseñas existentes.
-
-Para bases existentes, aplicar únicamente las migraciones pendientes. `database/01_schema_pgadmin.sql` es una alternativa de instalación manual; no debe ejecutarse sobre una base ya migrada.
+Abrir `http://localhost:5173` e iniciar sesión con una cuenta autorizada.
 
 ## Comandos
 
 | Comando | Función |
 | --- | --- |
-| `npm run dev` | Ejecutar el servidor de desarrollo. |
-| `npm run build` | Generar Prisma Client y compilar TypeScript. |
-| `npm start` | Ejecutar el servidor compilado. |
-| `npm run db:generate` | Generar Prisma Client. |
-| `npm run db:migrate` | Aplicar migraciones existentes. |
-| `npm run db:dev` | Crear y aplicar migraciones durante el desarrollo. |
-| `npm run db:seed` | Registrar los datos iniciales. |
-| `npm run user:create` | Crear una cuenta mediante preguntas en consola. |
-| `npm run user:deactivate` | Desactivar una cuenta con confirmación. |
-| `npm test` | Ejecutar las pruebas automatizadas. |
+| `npm run dev` | Iniciar Vite en desarrollo. |
+| `npm run build` | Comprobar TypeScript y generar la aplicación en `dist/`. |
+| `npm run preview` | Previsualizar localmente la compilación. |
+| `npm test` | Ejecutar las pruebas del almacenamiento de sesión. |
 
 ## Estructura
 
-| Directorio o archivo | Responsabilidad |
+La aplicación utiliza una organización por funcionalidades.
+
+| Directorio | Responsabilidad |
 | --- | --- |
-| `src/routes/` | Rutas y protección de endpoints. |
-| `src/controllers/` | Entrada HTTP y respuestas. |
-| `src/services/` | Reglas de negocio, acceso a datos y eventos. |
-| `src/validators/` | Validación de datos de entrada. |
-| `src/middlewares/` | Autenticación y errores globales. |
-| `src/config/` | Configuración de entorno. |
-| `src/scripts/` | Administración privada de cuentas. |
-| `src/types/`, `src/utils/` | Tipos y utilidades comunes. |
-| `src/app.ts`, `src/server.ts` | Aplicación Express y arranque del servidor. |
-| `prisma/` | Esquema, migraciones y seed. |
-| `database/` | Scripts SQL de instalación. |
-| `tests/` | Pruebas de API, migraciones y consola. |
+| `src/app/` | Composición principal y estado de autenticación. |
+| `src/features/auth/` | Pantalla de inicio de sesión y servicio de autenticación. |
+| `src/features/inventory/` | Página de inventario, formulario, hooks, servicios y tipos del dominio. |
+| `src/components/ui/` | Botones, iconos y modales reutilizables. |
+| `src/layouts/` | Distribución general y navegación adaptable. |
+| `src/hooks/` | Hooks compartidos. |
+| `src/services/` | Cliente Axios, interceptores y almacenamiento del token. |
+| `src/styles/` | Estilos globales y adaptación a dispositivos. |
+| `src/types/` | Tipos compartidos para respuestas de la API. |
 
-## Modelo de datos
+## Reglas de inventario
 
-El dominio incluye `Propietarios`, `Vestidos`, `Variantes_Vestido`, `Clientes`, `Ventas`, `Detalle_Venta` y `Movimientos_Contabilidad`. Las cuentas de acceso se almacenan en `Users`.
+El nombre, la descripción, el propietario y el precio unitario son obligatorios. Cada variante requiere color y cantidad entera mayor que cero; la talla es opcional.
 
-- El precio unitario debe ser mayor que cero. Los precios opcionales se guardan como `NULL` cuando no existen; si se informan, también deben ser positivos.
-- Los importes se almacenan como `DECIMAL(10,2)` y se intercambian como cadenas decimales en JSON.
-- El registro y la edición de inventario requieren cantidades enteras positivas por variante.
-- El número de vestido lo genera el servidor; no se recibe en el formulario y puede tener saltos.
-- No se permiten variantes repetidas de color y talla dentro de un modelo.
-- Eliminar un vestido elimina sus variantes, salvo que existan detalles de venta que impidan el borrado por integridad referencial.
+Los precios de cuarta y media docena son opcionales e independientes. Al dejarlos vacíos se envían como `null` y se muestran como «Sin descuento». Un precio informado debe ser positivo.
 
-## API
+El número de vestido se asigna al guardar en el servidor. El stock de cada modelo corresponde a la suma de sus variantes.
 
-Las rutas protegidas requieren `Authorization: Bearer <token>`.
+El clic sobre una fila, casilla o tarjeta alterna su selección. Cambiar la búsqueda limpia la selección. La eliminación múltiple informa los fallos y conserva seleccionados los vestidos que no pudieron eliminarse.
 
-| Método | Ruta | Función |
-| --- | --- | --- |
-| GET | `/api/health` | Estado de la API; público. |
-| POST | `/api/auth/login` | Inicio de sesión; público con limitación de intentos. |
-| GET | `/api/propietarios` | Listar propietarios. |
-| GET | `/api/vestidos` | Listar vestidos y existencias. |
-| POST | `/api/vestidos` | Registrar un vestido. |
-| PUT | `/api/vestidos/:id` | Actualizar un vestido y sus variantes. |
-| DELETE | `/api/vestidos/:id` | Eliminar un vestido. |
-| GET | `/api/vestidos/events` | Flujo SSE autenticado de cambios de inventario. |
+Los modales se pueden cerrar mediante su botón, Escape o clic fuera, excepto mientras procesan una operación. Cerrar un formulario descarta los cambios sin guardar. Los avisos de éxito también se cierran con «Aceptar» o automáticamente tras dos segundos.
 
-Formato de respuesta:
+## Sesiones y comunicación
 
-```json
-{ "success": true, "data": {}, "error": null }
-```
+Axios adjunta el JWT en `Authorization: Bearer <token>`. Una respuesta 401 en una operación protegida invalida la sesión correspondiente y devuelve al acceso.
 
-```json
-{
-  "success": false,
-  "data": null,
-  "error": { "code": "UNAUTHORIZED", "message": "Inicia sesión para continuar", "details": null }
-}
-```
+Sin mantener sesión iniciada, el token se guarda en `sessionStorage` y vence en hasta 8 horas. Con esa opción, se guarda en `localStorage` y vence en 30 días. No se almacena la contraseña.
 
-Ejemplo de registro:
+El cliente escucha eventos SSE autenticados para actualizar inventario y estadísticas sin recargar la página. Incluye reconexión, actualización al recuperar foco o conexión y una consulta de respaldo cada 15 segundos mientras la página está visible. Los formularios abiertos conservan sus cambios sin guardar durante los refrescos.
 
-```json
-{
-  "nombre": "Aurora",
-  "descripcion": "Vestido de satén",
-  "precio_unitario": "95.00",
-  "precio_cuarta": null,
-  "precio_media_docena": "80.00",
-  "id_propietario": 1,
-  "variantes": [
-    { "color": "Verde", "talla": "M", "cantidad_stock": 5 }
-  ]
-}
-```
+Los eventos inmediatos corresponden a conexiones atendidas por el mismo proceso backend. Con varias instancias, el respaldo periódico mantiene los datos sincronizados mientras no exista un canal de eventos compartido.
 
-Utilizar un propietario existente. En una edición, conservar el `id_variante` de las variantes existentes; las nuevas no llevan ID. `PUT` representa el formulario completo: las variantes omitidas se eliminan si las relaciones lo permiten.
+## Acceso desde un celular en la red local
 
-## Acceso y sesiones
+Suponiendo que la computadora que ejecuta los servidores tiene la IP `192.168.1.20`:
 
-No existe registro público. Todas las cuentas activas tienen acceso completo al inventario. Las cuentas se crean y desactivan mediante los comandos privados del servidor.
+1. Configurar `VITE_API_URL=http://192.168.1.20:3000/api` en el frontend.
+2. Configurar `CORS_ORIGIN=http://192.168.1.20:5173` en el backend y reiniciarlo.
+3. Ejecutar `npm run dev -- --host 0.0.0.0`.
+4. Abrir `http://192.168.1.20:5173` desde ambos dispositivos.
 
-La sesión normal dura hasta 8 horas. La opción de mantener sesión iniciada emite un token de 30 días. El cierre de sesión del frontend afecta al navegador actual; desactivar la cuenta impide nuevas peticiones autenticadas.
+Los equipos deben estar en la misma red y los puertos deben estar permitidos en la red privada del firewall. Sustituir la IP de ejemplo por la real. La configuración actual del backend permite un origen CORS a la vez.
 
-## Sincronización
+## Despliegue
 
-Después de una escritura exitosa, el servidor notifica a los clientes SSE conectados. Los eventos contienen el formato JSON estándar dentro de los mensajes `data:`. La conexión se renueva periódicamente para revalidar la sesión.
+Configurar `VITE_API_URL` con la URL pública de la API antes de ejecutar `npm run build`; Vite incorpora esta variable durante la compilación. Publicar el contenido de `dist/` en un alojamiento estático con HTTPS y configurar el origen público en el backend.
 
-Los avisos inmediatos se distribuyen dentro de un proceso Node.js. En despliegues con varias instancias, el frontend dispone de una consulta de respaldo cada 15 segundos. La distribución inmediata entre procesos requiere incorporar un canal compartido.
-
-## Despliegue y pruebas
-
-Configurar PostgreSQL, las variables de entorno y el origen definitivo del frontend. Aplicar migraciones, compilar y ejecutar `npm start`. Servir mediante HTTPS y configurar el proxy para permitir SSE sin buffering en `/api/vestidos/events`.
-
-No publicar `.env`, secretos ni credenciales. Los dispositivos deben conectarse a la misma API; `localhost` siempre identifica el equipo desde el cual se abre la aplicación.
-
-Las pruebas de integración utilizan PostgreSQL embebido desechable mediante PGlite en el puerto `55439`, sin utilizar `DAP_db`. Cubren autenticación, validaciones, integridad referencial, migraciones y notificaciones a dos conexiones simultáneas.
+Las variables con prefijo `VITE_` son públicas: no deben contener contraseñas ni secretos. Frontend y backend pueden alojarse por separado, siempre que todos los dispositivos utilicen la misma API y base de datos.
