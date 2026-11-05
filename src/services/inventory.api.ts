@@ -1,5 +1,5 @@
-import { api } from "../../../services/api";
-import type { ApiResponse } from "../../../types/api";
+import { api } from "./api";
+import type { ApiResponse } from "../types/api";
 import type { Dress, DressInput, Owner } from "../types/inventory";
 function unwrap<T>(r: ApiResponse<T>): T {
   if (!r.success) throw new Error(r.error.message);

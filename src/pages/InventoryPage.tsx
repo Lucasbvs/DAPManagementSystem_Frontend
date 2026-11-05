@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useInventory } from "../hooks/useInventory";
-import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
-import { Button } from "../../../components/ui/Button";
-import { Modal } from "../../../components/ui/Modal";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { Button } from "../components/ui/Button";
+import { Modal } from "../components/ui/Modal";
 import {
   ActionResultModal,
   type ActionResult,
-} from "../../../components/ui/ActionResultModal";
-import { DressForm } from "../components/DressForm";
+} from "../components/ui/ActionResultModal";
+import { DressForm } from "../components/forms/DressForm";
 import { inventoryApi } from "../services/inventory.api";
-import { errorMessage } from "../../../services/api";
+import { errorMessage } from "../services/api";
 const money = (v: string | null) =>
   v === null
     ? "Sin descuento"

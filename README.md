@@ -1,6 +1,6 @@
 # DAP Elegancia · Frontend
 
-Aplicación web de DAP Elegancia para administrar el inventario de vestidos desde computadoras y dispositivos móviles. Permite consultar modelos, controlar existencias por variante y mantener la información sincronizada entre las sesiones autorizadas.
+Aplicación web de DAP Elegancia para administrar el inventario y las ventas de vestidos desde computadoras y dispositivos móviles. Permite consultar modelos, controlar existencias por variante y mantener la información sincronizada entre las sesiones autorizadas.
 
 Este repositorio contiene exclusivamente el frontend. La API se mantiene en `DAPManagementSystem_Backend`, como repositorio independiente. El navegador se comunica con la API y no accede directamente a PostgreSQL.
 
@@ -19,7 +19,7 @@ Este repositorio contiene exclusivamente el frontend. La API se mantiene en `DAP
 - Navegación inferior en celular y menú lateral en escritorio.
 - Actualización automática del inventario y sus estadísticas entre dispositivos.
 
-El módulo activo es Inventario. Ventas y Contabilidad aparecen como secciones previstas para siguientes etapas.
+Los módulos activos son Inventario y Ventas. Contabilidad queda prevista para una siguiente etapa.
 
 ## Tecnologías
 
@@ -77,6 +77,7 @@ La aplicación utiliza una organización por funcionalidades.
 | --- | --- |
 | `src/app/` | Composición principal y estado de autenticación. |
 | `src/features/auth/` | Pantalla de inicio de sesión y servicio de autenticación. |
+| `src/features/sales/` | Lista, selección, formulario, precios, entrega y descarga PDF de ventas. |
 | `src/features/inventory/` | Página de inventario, formulario, hooks, servicios y tipos del dominio. |
 | `src/components/ui/` | Botones, iconos y modales reutilizables. |
 | `src/layouts/` | Distribución general y navegación adaptable. |
@@ -123,3 +124,15 @@ Los equipos deben estar en la misma red y los puertos deben estar permitidos en 
 Configurar `VITE_API_URL` con la URL pública de la API antes de ejecutar `npm run build`; Vite incorpora esta variable durante la compilación. Publicar el contenido de `dist/` en un alojamiento estático con HTTPS y configurar el origen público en el backend.
 
 Las variables con prefijo `VITE_` son públicas: no deben contener contraseñas ni secretos. Frontend y backend pueden alojarse por separado, siempre que todos los dispositivos utilicen la misma API y base de datos.
+
+## Ventas
+
+Entrar desde el menú **Ventas** o `#ventas`. La fecha inicial corresponde a Bolivia y se puede consultar otro día con el filtro. Pulsar una fila, casilla o tarjeta selecciona/deselecciona; se admite selección múltiple. Editar y cambiar vestido requieren una venta realizada; cancelar e imprimir admiten varias ventas realizadas.
+
+**Registrar venta** abre el catálogo con búsqueda, selección por color/talla y contadores. El total de prendas determina el precio: 1–2 unitario, 3–5 cuarta, 6 o más media docena. Si falta el precio correspondiente, se usa el unitario. Se muestran subtotal, delivery adicional, costo de envío opcional, total cobrado y neto después de Bs 10 fijos de delivery. El servidor valida stock y calcula los valores definitivos.
+
+El formulario incluye celular, nombre, dirección y enlace de ubicación. Para envío departamental se indica departamento, ciudad/provincia y costo independiente. Editar o cambiar vestido ajusta el stock; cancelar devuelve las existencias y conserva el historial del pedido.
+
+**Imprimir ventas** descarga directamente un PDF con los pedidos seleccionados. Cada pedido incluye su número actual, celular, dirección, prendas, color/talla, cantidad, precio aplicado, subtotal, delivery adicional, envío y total. Se puede abrir el archivo y usar la impresión del visor PDF del dispositivo.
+
+Las ventas se sincronizan mediante el mismo flujo SSE autenticado del inventario, con respaldo cada 15 segundos. El servidor protege registros repetidos, cambios concurrentes y ventas sin existencias.

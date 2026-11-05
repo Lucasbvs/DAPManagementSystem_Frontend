@@ -3,6 +3,15 @@ export function NavIcon({
 }: {
   name: "sales" | "inventory" | "accounting" | "logout";
 }) {
+  if (name !== "logout")
+    return (
+      <img
+        aria-hidden="true"
+        alt=""
+        className="nav-icon figma-nav-icon"
+        src={`/assets/figma/${name}.svg`}
+      />
+    );
   const paths = {
     sales: "M3 3h2l3 12h10l3-9H6 M9 20h.01 M18 20h.01",
     inventory: "M3 7l9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7.5 5 17 9",

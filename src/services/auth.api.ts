@@ -1,5 +1,5 @@
-import { api } from "../../../services/api";
-import type { ApiResponse } from "../../../types/api";
+import { api } from "./api";
+import type { ApiResponse } from "../types/api";
 type Session = {
   token: string;
   user: { id: number; name: string; email: string };

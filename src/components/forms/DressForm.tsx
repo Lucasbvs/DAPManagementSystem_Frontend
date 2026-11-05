@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { Modal } from "../../../components/ui/Modal";
-import { Button } from "../../../components/ui/Button";
-import { inventoryApi } from "../services/inventory.api";
-import { errorMessage } from "../../../services/api";
-import type { Dress, DressInput, Owner, Variant } from "../types/inventory";
+import { Modal } from "../ui/Modal";
+import { Button } from "../ui/Button";
+import { inventoryApi } from "../../services/inventory.api";
+import { errorMessage } from "../../services/api";
+import type { Dress, DressInput, Owner, Variant } from "../../types/inventory";
 export function DressForm({
   dress,
   owners,
@@ -109,13 +109,8 @@ export function DressForm({
       busy={busy}
     >
       <form onSubmit={submit}>
-        <fieldset disabled={busy} className="space-y-5">
+        <fieldset disabled={busy} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <p className="text-sm text-muted sm:col-span-2">
-              {dress
-                ? `Vestido N.º ${dress.numero_vestido} · Número asignado automáticamente`
-                : "El número de vestido se asignará automáticamente al guardar."}
-            </p>
             <label>
               Nombre
               <input
@@ -178,16 +173,8 @@ export function DressForm({
               </label>
             ))}
           </div>
-          <p className="text-sm text-muted">
-            Cuarta y media docena son opcionales. Déjalos vacíos si el vestido
-            no tiene ese descuento.
-          </p>
           <div>
             <h3 className="font-bold">Colores, tallas y existencias</h3>
-            <p className="mb-3 text-sm text-muted">
-              Cada fila representa una variante. Stock total:{" "}
-              {form.variantes.reduce((n, v) => n + (v.cantidad_stock || 0), 0)}
-            </p>
             <div className="space-y-3">
               {form.variantes.map((v, i) => (
                 <div key={v.id_variante ?? `new-${i}`} className="variant-row">

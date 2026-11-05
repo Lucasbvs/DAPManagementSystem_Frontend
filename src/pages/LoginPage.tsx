@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { login } from "../services/auth.api";
-import { tokenStore } from "../../../services/token";
-import { errorMessage } from "../../../services/api";
-import { Button } from "../../../components/ui/Button";
+import { tokenStore } from "../services/token";
+import { errorMessage } from "../services/api";
+import { Button } from "../components/ui/Button";
 export function LoginPage({
   onLogin,
   expired,

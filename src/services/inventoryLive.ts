@@ -1,5 +1,5 @@
-import { api } from "../../../services/api";
-import { tokenStore } from "../../../services/token";
+import { api } from "./api";
+import { tokenStore } from "./token";
 export function subscribeInventory(onChange: () => void) {
   let stopped = false,
     timer: ReturnType<typeof setTimeout> | undefined;

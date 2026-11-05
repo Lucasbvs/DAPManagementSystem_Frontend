@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { inventoryApi } from "../services/inventory.api";
 import { subscribeInventory } from "../services/inventoryLive";
-import { errorMessage } from "../../../services/api";
+import { errorMessage } from "../services/api";
 import type { Dress, Owner } from "../types/inventory";
 export function useInventory() {
   const [dresses, setDresses] = useState<Dress[]>([]),
