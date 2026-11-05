@@ -15,19 +15,6 @@ export function App() {
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);
-
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      const target = e.target as HTMLElement;
-      if (target instanceof HTMLInputElement && target.type === "number") {
-        target.blur();
-      }
-    };
-
-    window.addEventListener("wheel", handleWheel, { passive: true });
-    return () => window.removeEventListener("wheel", handleWheel);
-  }, []);
-  
   const [logged, setLogged] = useState(!!tokenStore.get()),
     [expired, setExpired] = useState(false);
   useEffect(() => {

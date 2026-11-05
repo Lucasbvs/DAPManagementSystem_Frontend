@@ -11,11 +11,9 @@
  button { @apply cursor-pointer disabled:cursor-not-allowed; }
  label { @apply block text-sm font-bold; }
  input:not([type=radio]):not([type=checkbox]),select,textarea { @apply mt-2 block min-h-11 w-full rounded-lg border border-line bg-white px-3 py-2 text-base font-normal; }
- textarea { @apply min-h-20 resize-y; }
+ textarea { @apply min-h-20 resize-none; }
  input[type=checkbox] { width:18px;height:18px;accent-color:var(--color-primary); }
  input[type=radio] { accent-color:var(--color-primary); }
- input[type="number"]::-webkit-outer-spin-button,
- input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
 @layer components {
  .brand { font-family:'Lora',serif; }
@@ -180,4 +178,30 @@ dialog::backdrop { background:rgb(12 59 69 / 45%); }
  .sales-stat{gap:4px;height:120px;min-height:120px}
  .sales-stat>strong{line-height:1.2}
  .sales-list{flex:0 1 410px}
+}
+
+/* Inventario: campos, filtro de propietarios y alertas de existencias. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type="number"]{appearance:textfield;-moz-appearance:textfield}
+.dress-description{resize:none;overflow:hidden;min-height:80px}
+.required-mark{color:#9f1239;font-weight:700}
+.inventory-filters{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.inventory-filters .inventory-search{flex:1;min-width:0}
+.inventory-owner-filter{width:240px;flex-shrink:0}
+.inventory-owner-filter select{margin-top:0!important;min-height:48px;border:2px solid #3e9b94;border-radius:12px}
+.inventory-table{min-width:1120px}
+.inventory-colors{display:flex;flex-wrap:wrap;gap:5px;font-size:11px}
+.color-stock,.color-stock-low{display:inline-block;border-radius:5px;padding:3px 5px;line-height:1.5}
+.color-stock{background:#edf7f5;color:#20666b}
+.color-stock-low{background:#fff1c2!important;color:#854d0e!important;border:1px solid #e7b451}
+.model-stock-warning{display:block;color:#854d0e;font-size:10px;margin-top:4px;font-weight:700}
+.inventory-stock-low:not(.selected){background:#fffbeb}
+.inventory-table tr.inventory-stock-low>td:first-child{box-shadow:inset 4px 0 #d89b21}
+.mobile-card.inventory-stock-low{border-left:4px solid #d89b21}
+.warehouse-location{font-weight:700;overflow-wrap:anywhere}
+@media(max-width:767px){
+ .inventory-filters{flex-direction:column;align-items:stretch;gap:8px}
+ .inventory-owner-filter{width:100%}
+ .inventory-colors{font-size:12px}
 }

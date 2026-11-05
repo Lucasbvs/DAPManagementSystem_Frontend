@@ -76,9 +76,8 @@ La aplicación utiliza una organización por funcionalidades.
 | Directorio | Responsabilidad |
 | --- | --- |
 | `src/app/` | Composición principal y estado de autenticación. |
-| `src/features/auth/` | Pantalla de inicio de sesión y servicio de autenticación. |
-| `src/features/sales/` | Lista, selección, formulario, precios, entrega y descarga PDF de ventas. |
-| `src/features/inventory/` | Página de inventario, formulario, hooks, servicios y tipos del dominio. |
+| `src/pages/` | Pantallas de acceso, inventario y ventas. |
+| `src/components/forms/` | Formularios de vestidos y ventas. |
 | `src/components/ui/` | Botones, iconos y modales reutilizables. |
 | `src/layouts/` | Distribución general y navegación adaptable. |
 | `src/hooks/` | Hooks compartidos. |
@@ -88,7 +87,7 @@ La aplicación utiliza una organización por funcionalidades.
 
 ## Reglas de inventario
 
-El nombre, la descripción, el propietario y el precio unitario son obligatorios. Cada variante requiere color y cantidad entera mayor que cero; la talla es opcional.
+El nombre, la descripción, la ubicación en almacén, el propietario y el precio unitario son obligatorios. Cada variante requiere color y cantidad entera mayor que cero al crearla; una variante existente puede conservar stock cero. La talla es opcional.
 
 Los precios de cuarta y media docena son opcionales e independientes. Al dejarlos vacíos se envían como `null` y se muestran como «Sin descuento». Un precio informado debe ser positivo.
 

@@ -10,6 +10,27 @@ import {
 import { DressForm } from "../components/forms/DressForm";
 import { inventoryApi } from "../services/inventory.api";
 import { errorMessage } from "../services/api";
+import { LOW_STOCK_LIMIT, stockByColor } from "../services/inventoryRules";
+import type { Dress } from "../types/inventory";
+function Colors({ dress }: { dress: Dress }) {
+  return (
+    <span className="inventory-colors">
+      {stockByColor(dress.variantes).map(({ color, quantity }) => (
+        <span
+          key={color}
+          className={
+            quantity <= LOW_STOCK_LIMIT ? "color-stock-low" : "color-stock"
+          }
+        >
+          {color} · {quantity}
+          {quantity <= LOW_STOCK_LIMIT && (
+            <span> · {quantity === 0 ? "Agotado" : "Stock bajo"}</span>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
 const money = (v: string | null) =>
   v === null
     ? "Sin descuento"
@@ -19,6 +40,7 @@ const money = (v: string | null) =>
       }).format(Number(v));
 export function InventoryPage() {
   const { dresses, owners, loading, error, reload } = useInventory();
+  const [ownerFilter, setOwnerFilter] = useState("");
   const [query, setQuery] = useState(""),
     [selected, setSelected] = useState<number[]>([]),
     [modal, setModal] = useState<"new" | "edit" | "delete" | null>(null);
@@ -26,8 +48,13 @@ export function InventoryPage() {
     [deleteError, setDeleteError] = useState(""),
     [result, setResult] = useState<ActionResult | null>(null);
   const search = useDebouncedValue(query).trim().toLocaleLowerCase();
-  const filtered = dresses.filter((d) =>
-    `${d.nombre} ${d.descripcion}`.toLocaleLowerCase().includes(search),
+  const ownerDresses = dresses.filter(
+    (d) => !ownerFilter || d.id_propietario === Number(ownerFilter),
+  );
+  const filtered = ownerDresses.filter((d) =>
+    `${d.nombre} ${d.descripcion} ${d.ubicacion_almacen ?? ""}`
+      .toLocaleLowerCase()
+      .includes(search),
   );
   const selectedDresses = dresses.filter((d) =>
     selected.includes(d.id_vestido),
@@ -40,7 +67,7 @@ export function InventoryPage() {
         : [...current, id],
     );
   }
-  const low = dresses.filter((d) => d.stock_total < 5);
+  const low = ownerDresses.filter((d) => d.stock_total <= LOW_STOCK_LIMIT);
   async function remove() {
     if (!selectedDresses.length) return;
     setBusy(true);
@@ -81,20 +108,20 @@ export function InventoryPage() {
           {
             label: "MODELOS REGISTRADOS",
             short: "Modelos",
-            value: dresses.length,
+            value: ownerDresses.length,
             detail: "Modelos de vestidos en catálogo",
           },
           {
             label: "VESTIDOS DISPONIBLES",
             short: "Disponibles",
-            value: dresses.reduce((n, d) => n + d.stock_total, 0),
+            value: ownerDresses.reduce((n, d) => n + d.stock_total, 0),
             detail: "Unidades listas para vender",
           },
           {
             label: "STOCK BAJO",
             short: "Stock bajo",
             value: low.length,
-            detail: "Menos de 5 unidades",
+            detail: "2 unidades o menos por modelo",
             suffix: low.length === 1 ? "modelo" : "modelos",
           },
         ].map(({ label, short, value, detail, suffix }) => (
@@ -122,19 +149,41 @@ export function InventoryPage() {
         </div>
       )}
       <section className="inventory-list" aria-label="Lista de vestidos">
-        <label className="inventory-search block">
-          <span className="sr-only">Buscar por nombre o descripción</span>
-          <input
-            type="search"
-            className="search-input"
-            placeholder="Buscar por nombre o descripción"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelected([]);
-            }}
-          />
-        </label>
+        <div className="inventory-filters">
+          <label className="inventory-search block">
+            <span className="sr-only">
+              Buscar por nombre, descripción o ubicación
+            </span>
+            <input
+              type="search"
+              className="search-input"
+              placeholder="Buscar por nombre, descripción o ubicación"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelected([]);
+              }}
+            />
+          </label>
+          <label className="inventory-owner-filter">
+            <span className="sr-only">Filtrar por dueño de la prenda</span>
+            <select
+              aria-label="Filtrar por dueño de la prenda"
+              value={ownerFilter}
+              onChange={(e) => {
+                setOwnerFilter(e.target.value);
+                setSelected([]);
+              }}
+            >
+              <option value="">Todos los dueños</option>
+              {owners.map((owner) => (
+                <option key={owner.id_propietario} value={owner.id_propietario}>
+                  {owner.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div
           className="inventory-scroll"
           tabIndex={0}
@@ -149,9 +198,11 @@ export function InventoryPage() {
               <div className="hidden md:block">
                 <table className="inventory-table">
                   <colgroup>
-                    {[4, 5, 12, 23, 12, 8, 9, 9, 9, 9].map((width, index) => (
-                      <col key={index} style={{ width: `${width}%` }} />
-                    ))}
+                    {[4, 5, 12, 18, 8, 13, 7, 9, 8, 8, 8].map(
+                      (width, index) => (
+                        <col key={index} style={{ width: `${width}%` }} />
+                      ),
+                    )}
                   </colgroup>
                   <thead>
                     <tr>
@@ -160,6 +211,7 @@ export function InventoryPage() {
                         "Nro.",
                         "Nombre",
                         "Descripción",
+                        "Ubicación",
                         "Colores",
                         "Cantidad",
                         "p unitario",
@@ -177,9 +229,7 @@ export function InventoryPage() {
                     {filtered.map((d) => (
                       <tr
                         key={d.id_vestido}
-                        className={
-                          selected.includes(d.id_vestido) ? "selected" : ""
-                        }
+                        className={`${selected.includes(d.id_vestido) ? "selected" : ""} ${d.stock_total <= LOW_STOCK_LIMIT || stockByColor(d.variantes).some((c) => c.quantity <= LOW_STOCK_LIMIT) ? "inventory-stock-low" : ""}`}
                         onClick={() => toggle(d.id_vestido)}
                       >
                         <td>
@@ -192,12 +242,22 @@ export function InventoryPage() {
                           />
                         </td>
                         <td>{String(d.numero_vestido).padStart(2, "0")}</td>
-                        <th scope="row">{d.nombre}</th>
+                        <th scope="row">
+                          {d.nombre}
+                          {d.stock_total <= LOW_STOCK_LIMIT && (
+                            <span className="model-stock-warning">
+                              {d.stock_total === 0 ? "Agotado" : "Stock bajo"}
+                            </span>
+                          )}
+                        </th>
                         <td>{d.descripcion}</td>
                         <td>
-                          {[...new Set(d.variantes.map((v) => v.color))].join(
-                            " · ",
-                          )}
+                          <span className="warehouse-location">
+                            {d.ubicacion_almacen ?? "Sin asignar"}
+                          </span>
+                        </td>
+                        <td>
+                          <Colors dress={d} />
                         </td>
                         <td>{d.stock_total}</td>
                         <td>{money(d.precio_unitario)}</td>
@@ -215,23 +275,29 @@ export function InventoryPage() {
                     key={d.id_vestido}
                     aria-pressed={selected.includes(d.id_vestido)}
                     onClick={() => toggle(d.id_vestido)}
-                    className={`mobile-card ${selected.includes(d.id_vestido) ? "selected" : ""}`}
+                    className={`mobile-card ${selected.includes(d.id_vestido) ? "selected" : ""} ${d.stock_total <= LOW_STOCK_LIMIT || stockByColor(d.variantes).some((c) => c.quantity <= LOW_STOCK_LIMIT) ? "inventory-stock-low" : ""}`}
                   >
                     <span className="card-heading flex justify-between gap-3">
                       <strong>
                         {d.numero_vestido}. {d.nombre}
                       </strong>
-                      <span className="stock-badge">{d.stock_total} disp.</span>
+                      <span
+                        className={`stock-badge ${d.stock_total <= LOW_STOCK_LIMIT ? "color-stock-low" : ""}`}
+                      >
+                        {d.stock_total} disp.
+                        {d.stock_total <= LOW_STOCK_LIMIT
+                          ? " · Stock bajo"
+                          : ""}
+                      </span>
                     </span>
                     <span className="my-2 block text-sm text-muted">
                       {d.descripcion}
                     </span>
-                    <span className="block text-sm">
-                      {[...new Set(d.variantes.map((v) => v.color))].join(
-                        " · ",
-                      )}{" "}
-                      · {d.propietario.nombre}
+                    <span className="mb-2 block text-sm">
+                      {d.propietario.nombre} · Ubicación:{" "}
+                      <strong>{d.ubicacion_almacen ?? "Sin asignar"}</strong>
                     </span>
+                    <Colors dress={d} />
                     <span className="card-prices mt-3 grid grid-cols-3 gap-2 text-xs">
                       {[
                         ["Unitario", d.precio_unitario],
@@ -249,8 +315,8 @@ export function InventoryPage() {
               </div>
               {!filtered.length && (
                 <p className="py-10 text-center text-muted">
-                  {query
-                    ? "No se encontraron vestidos."
+                  {query || ownerFilter
+                    ? "No se encontraron vestidos para los filtros elegidos."
                     : "Aún no hay vestidos. Registra el primero."}
                 </p>
               )}

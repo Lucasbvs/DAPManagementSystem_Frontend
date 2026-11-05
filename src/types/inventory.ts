@@ -10,6 +10,7 @@ export type Variant = {
   cantidad_stock: number;
 };
 export type DressInput = {
+  ubicacion_almacen: string;
   nombre: string;
   descripcion: string;
   precio_unitario: string;
@@ -18,7 +19,9 @@ export type DressInput = {
   id_propietario: number;
   variantes: Variant[];
 };
-export type Dress = DressInput & {
+export type Dress = Omit<DressInput, "ubicacion_almacen"> & {
+  ubicacion_almacen: string | null;
+} & {
   id_vestido: number;
   numero_vestido: number;
   propietario: Owner;
