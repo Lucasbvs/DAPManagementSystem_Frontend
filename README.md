@@ -130,7 +130,7 @@ Entrar desde el menú **Ventas** o `#ventas`. La fecha inicial corresponde a Bol
 
 **Registrar venta** abre el catálogo con búsqueda, selección por color/talla y contadores. El total de prendas determina el precio: 1–2 unitario, 3–5 cuarta, 6 o más media docena. Si falta el precio correspondiente, se usa el unitario. Se muestran subtotal, delivery adicional, costo de envío opcional, total cobrado y neto después de Bs 10 fijos de delivery. El servidor valida stock y calcula los valores definitivos.
 
-El formulario incluye celular, nombre, dirección y enlace de ubicación. Para envío departamental se indica departamento, ciudad/provincia y costo independiente. Editar o cambiar vestido ajusta el stock; cancelar devuelve las existencias y conserva el historial del pedido.
+El formulario incluye celular, nombre, dirección y enlace de ubicación. Para envío departamental se indica departamento, ciudad/provincia y costo independiente. Editar una compra sin historial ajusta el stock. Cambio de vestido genera un registro nuevo vinculado al original; cancelar revierte los movimientos y conserva el historial.
 
 **Imprimir ventas** descarga directamente un PDF con los pedidos seleccionados. Cada pedido incluye su número actual, celular, dirección, prendas, color/talla, cantidad, precio aplicado, subtotal, delivery adicional, envío y total. Se puede abrir el archivo y usar la impresión del visor PDF del dispositivo.
 

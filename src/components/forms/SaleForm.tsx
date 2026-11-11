@@ -12,16 +12,8 @@ import {
   type Sale,
   type SaleInput,
 } from "../../types/sales";
-function registrationKey() {
-  const a = crypto.getRandomValues(new Uint8Array(16));
-  a[6] = (a[6] & 15) | 64;
-  a[8] = (a[8] & 63) | 128;
-  return Array.from(
-    a,
-    (b, i) =>
-      `${[4, 6, 8, 10].includes(i) ? "-" : ""}${b.toString(16).padStart(2, "0")}`,
-  ).join("");
-}
+import { registrationKey } from "../../services/salesRules";
+import { DeliverySchedule } from "./DeliverySchedule";
 const departments = [
   "La_Paz",
   "Cochabamba",
@@ -35,17 +27,18 @@ const departments = [
 ];
 export function SaleForm({
   sale,
-  exchange = false,
   onClose,
   onSaved,
 }: {
   sale?: Sale;
-  exchange?: boolean;
   onClose: () => void;
   onSaved: (s: Sale) => void;
 }) {
   const { dresses, loading, error: catalogError, reload } = useInventory();
   const [key] = useState(() => registrationKey());
+  const [start, setStart] = useState(sale?.hora_entrega_desde ?? ""),
+    [end, setEnd] = useState(sale?.hora_entrega_hasta ?? ""),
+    [range, setRange] = useState(!!sale?.hora_entrega_hasta);
   const [quantities, setQuantities] = useState<Record<number, number>>(() =>
     Object.fromEntries(
       sale?.detalles.map((d) => [d.id_variante, d.cantidad]) ?? [],
@@ -60,7 +53,11 @@ export function SaleForm({
     direccion_entrega: sale?.direccion_entrega ?? "",
     link_ubicacion: sale?.link_ubicacion ?? "",
   });
-  const [additional, setAdditional] = useState(sale?.adicional_delivery ?? "0"),
+  const [additional, setAdditional] = useState(
+      sale && Number(sale.adicional_delivery) > 0
+        ? sale.adicional_delivery
+        : "",
+    ),
     [shipping, setShipping] = useState(!!sale?.departamento_destino),
     [department, setDepartment] = useState(
       sale?.departamento_destino ?? "Cochabamba",
@@ -114,10 +111,12 @@ export function SaleForm({
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (busy || !total || unavailable) return;
+    if (busy || !total || unavailable || (range && end <= start)) return;
     setBusy(true);
     setError("");
     const data: SaleInput = {
+      hora_entrega_desde: start,
+      hora_entrega_hasta: range ? end : null,
       clave_registro: sale?.clave_registro ?? key,
       version: sale?.version,
       cliente: {
@@ -130,7 +129,7 @@ export function SaleForm({
         id_variante: v.id,
         cantidad: quantities[v.id],
       })),
-      adicional_delivery: additional,
+      adicional_delivery: additional || "0",
       departamento_destino: shipping ? department : null,
       ciudad_provincia: shipping ? city : null,
       costo_envio: shipping ? shippingCost : null,
@@ -146,21 +145,11 @@ export function SaleForm({
   }
   return (
     <Modal
-      title={
-        sale
-          ? `${exchange ? "Cambio de vestido" : "Editar venta"} · ${orderNumber(sale)}`
-          : "Registrar venta"
-      }
+      title={sale ? `Editar venta · ${orderNumber(sale)}` : "Registrar venta"}
       onClose={onClose}
       busy={busy}
     >
       <form onSubmit={(e) => void submit(e)} className="sale-form">
-        {exchange && (
-          <p className="rounded-lg bg-mint p-3 text-sm">
-            Deselecciona las prendas devueltas y selecciona sus reemplazos. Se
-            ajustarán stock e importes del pedido.
-          </p>
-        )}
         <fieldset disabled={busy} className="space-y-4">
           <legend className="mb-3 font-bold">Seleccionar vestidos</legend>
           <label>
@@ -310,9 +299,9 @@ export function SaleForm({
         <fieldset disabled={busy} className="space-y-4">
           <legend className="mb-3 font-bold">Delivery y envío</legend>
           <label>
-            Adicional de delivery (Bs)
+            Adicional de delivery (Bs, opcional)
             <input
-              required
+              placeholder="0.00"
               type="number"
               min="0"
               max="99999999.99"
@@ -345,9 +334,8 @@ export function SaleForm({
                 </select>
               </label>
               <label>
-                Ciudad / provincia
+                Provincia / ciudad (opcional)
                 <input
-                  required
                   maxLength={100}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
@@ -367,6 +355,16 @@ export function SaleForm({
               </label>
             </div>
           )}
+        </fieldset>
+        <fieldset disabled={busy}>
+          <DeliverySchedule
+            start={start}
+            end={end}
+            range={range}
+            setStart={setStart}
+            setEnd={setEnd}
+            setRange={setRange}
+          />
         </fieldset>
         <section className="sale-summary" aria-label="Resumen de la venta">
           <div>
@@ -412,7 +410,12 @@ export function SaleForm({
             type="submit"
             variant="primary"
             disabled={
-              busy || loading || !!catalogError || !total || unavailable
+              busy ||
+              loading ||
+              !!catalogError ||
+              !total ||
+              unavailable ||
+              (range && !!end && end <= start)
             }
           >
             {busy ? "Guardando…" : sale ? "Guardar cambios" : "Registrar venta"}
