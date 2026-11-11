@@ -99,8 +99,6 @@ dialog::backdrop { background:rgb(12 59 69 / 45%); }
 .inventory-search .search-input:focus { border-color:#20666b;outline:2px solid #88c9c4;outline-offset:2px; }
 @media(max-width:767px){
  /* El menú ocupa su altura real: nunca se superpone con las acciones. */
- .mobile-header { order:0;padding:12px 16px; }
- .mobile-header > button { min-height:44px;padding:8px; }
  .app-main { order:1;height:auto; }
  .sidebar { position:static;order:2;flex-shrink:0;padding:8px 12px max(8px,env(safe-area-inset-bottom)); }
  .sidebar nav { gap:8px; }
@@ -270,3 +268,58 @@ input[type="number"]{appearance:textfield;-moz-appearance:textfield}
 .password-field input { margin-top:0 !important;padding-right:52px !important; }
 .password-toggle { position:absolute;right:1px;top:1px;bottom:1px;width:44px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:var(--color-primary); }
 .password-toggle:hover { background:var(--color-mint); }
+
+@media (max-width:767px) {
+ .inventory-page { gap:14px; }
+ .inventory-page .inventory-stats { display:none; }
+ .inventory-mobile-heading { flex-shrink:0;display:grid;grid-template-rows:1fr;opacity:1;transform:translateY(0);visibility:visible;transition:grid-template-rows 320ms ease,margin-bottom 320ms ease,opacity 240ms ease,transform 320ms ease,visibility 0s; }
+ .inventory-summary-content { min-height:0;overflow:hidden; }
+ .inventory-mobile-heading.inventory-summary-hidden { grid-template-rows:0fr;opacity:0;transform:translateY(-8px);visibility:hidden;margin-bottom:-14px;transition-delay:0s,0s,0s,0s,320ms; }
+ .inventory-mobile-totals { display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px; }
+ .inventory-mobile-low { margin-top:4px;font-size:12px;font-weight:700;color:#94620a; }
+ .inventory-page .inventory-scroll { overflow-anchor:none; }
+ .inventory-mobile-heading h1 { font-size:28px;font-weight:800;line-height:1.2; }
+ .inventory-mobile-heading p { margin-top:4px;font-size:14px;color:var(--color-muted); }
+ .inventory-page .inventory-filters { flex-direction:row;align-items:center;gap:8px; }
+ .inventory-page .inventory-search { position:relative; }
+ .inventory-search-icon { position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none; }
+ .inventory-page .inventory-search input { padding-left:36px;font-size:14px;min-height:46px; }
+ .inventory-page .inventory-owner-filter { width:42%;max-width:180px;min-width:0; }
+ .inventory-page .inventory-owner-filter select { min-height:46px;font-size:13px;border:1px solid var(--color-line);border-radius:8px;padding-left:8px;padding-right:4px; }
+ .inventory-page .inventory-scroll { background:transparent; }
+ .inventory-mobile-cards { display:flex;flex-direction:column;gap:14px;padding:2px 2px 6px; }
+ .inventory-dress-card { padding:12px;line-height:1.35;border:1px solid #dfeae8;border-radius:16px;box-shadow:0 3px 10px #0c3b4508; }
+ .inventory-dress-card.selected { border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent); }
+ .inventory-dress-heading { display:flex;align-items:flex-start;justify-content:space-between;gap:12px;font-size:22px;line-height:1.25; }
+ .inventory-selection { width:28px;height:28px;flex-shrink:0;border:1.5px solid #9baeb0;border-radius:50%;display:flex;align-items:center;justify-content:center; }
+ .selected .inventory-selection { color:white;background:var(--color-accent);border-color:var(--color-accent); }
+ .inventory-dress-description { display:block;margin-top:2px;font-size:14px;color:var(--color-muted);white-space:pre-line; }
+ .inventory-dress-stock { display:block;margin-top:5px;color:var(--color-primary);font-size:16px;font-weight:700; }
+ .inventory-stock-note { font-size:12px;color:#94620a; }
+ .inventory-dress-colors { display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:4px;font-size:14px; }
+ .inventory-dress-details { display:grid;gap:2px;margin-top:6px;font-size:13px;color:var(--color-muted); }
+ .inventory-dress-details strong { color:var(--color-ink);font-weight:600; }
+ .inventory-dress-prices { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--color-line);margin-top:8px;padding-top:7px;text-align:center; }
+ .inventory-dress-prices > span { min-width:0;padding:0 5px;font-size:12px; }
+ .inventory-dress-prices > span + span { border-left:1px solid var(--color-line); }
+ .inventory-dress-prices strong { display:block;margin-top:2px;font-size:15px; }
+ .inventory-page .inventory-actions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-top:0;border-top:0; }
+ .inventory-page .inventory-actions .btn { min-height:44px;border-radius:8px;font-size:14px;padding:6px 12px; }
+ .inventory-page .inventory-actions .btn:first-child { grid-column:1 / -1; }
+ .inventory-page .inventory-actions svg { width:18px;height:18px; }
+}
+
+@media (max-width:767px) {
+ .sidebar { opacity:1;transform:translateY(0);margin-bottom:0;visibility:visible;transition:transform 320ms ease,margin-bottom 320ms ease,opacity 240ms ease,visibility 0s;height:calc(56px + env(safe-area-inset-bottom));padding:6px 12px calc(6px + env(safe-area-inset-bottom));overflow:hidden; }
+ .sidebar .nav-item { min-height:44px;height:44px;padding:6px; }
+ .sidebar .nav-item > span { display:none; }
+ .sidebar .nav-icon { width:22px;height:22px; }
+ .sidebar.mobile-nav-hidden { transform:translateY(100%);opacity:0;margin-bottom:calc(-56px - env(safe-area-inset-bottom));visibility:hidden;pointer-events:none;transition-delay:0s,0s,0s,320ms; }
+}
+
+@media (max-width:767px) and (prefers-reduced-motion:reduce) {
+ .inventory-mobile-heading,
+ .inventory-mobile-heading.inventory-summary-hidden,
+ .sidebar,
+ .sidebar.mobile-nav-hidden { transition:none; }
+}

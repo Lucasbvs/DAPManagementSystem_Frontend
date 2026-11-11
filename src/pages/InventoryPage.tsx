@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Check, Search } from "lucide-react";
 import { useState } from "react";
 import { useInventory } from "../hooks/useInventory";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -41,6 +41,7 @@ const money = (v: string | null) =>
       }).format(Number(v));
 export function InventoryPage() {
   const { dresses, owners, loading, error, reload } = useInventory();
+  const [summaryHidden, setSummaryHidden] = useState(false);
   const [ownerFilter, setOwnerFilter] = useState("");
   const [query, setQuery] = useState(""),
     [selected, setSelected] = useState<number[]>([]),
@@ -104,6 +105,27 @@ export function InventoryPage() {
   }
   return (
     <div className="inventory-page" aria-label="Inventario">
+      <header
+        className={`inventory-mobile-heading md:hidden ${summaryHidden ? "inventory-summary-hidden" : ""}`}
+        aria-hidden={summaryHidden}
+      >
+        <div className="inventory-summary-content">
+          <h1>Inventario</h1>
+          <div className="inventory-mobile-totals">
+            <p>
+              {loading
+                ? "Cargando…"
+                : `${ownerDresses.length} modelos · ${ownerDresses.reduce((total, item) => total + item.stock_total, 0)} prendas`}
+            </p>
+            <span
+              className="inventory-mobile-low"
+              title="Modelos con 2 unidades o menos"
+            >
+              Stock bajo: {loading ? "…" : low.length}
+            </span>
+          </div>
+        </div>
+      </header>
       <section aria-label="Resumen del inventario" className="inventory-stats">
         {[
           {
@@ -155,14 +177,20 @@ export function InventoryPage() {
             <span className="sr-only">
               Buscar por nombre, descripción o ubicación
             </span>
+            <Search
+              className="inventory-search-icon md:hidden"
+              size={20}
+              aria-hidden="true"
+            />
             <input
               type="search"
               className="search-input"
-              placeholder="Buscar por nombre, descripción o ubicación"
+              placeholder="Buscar vestido"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setSelected([]);
+                setSummaryHidden(false);
               }}
             />
           </label>
@@ -174,6 +202,7 @@ export function InventoryPage() {
               onChange={(e) => {
                 setOwnerFilter(e.target.value);
                 setSelected([]);
+                setSummaryHidden(false);
               }}
             >
               <option value="">Todos los dueños</option>
@@ -187,6 +216,11 @@ export function InventoryPage() {
         </div>
         <div
           className="inventory-scroll"
+          onScroll={(event) => {
+            const position = event.currentTarget.scrollTop;
+            if (position > 120) setSummaryHidden(true);
+            else if (position <= 8) setSummaryHidden(false);
+          }}
           tabIndex={0}
           aria-label="Vestidos disponibles"
         >
@@ -270,44 +304,58 @@ export function InventoryPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="space-y-3 md:hidden">
+              <div className="inventory-mobile-cards md:hidden">
                 {filtered.map((d) => (
                   <button
+                    type="button"
                     key={d.id_vestido}
                     aria-pressed={selected.includes(d.id_vestido)}
                     onClick={() => toggle(d.id_vestido)}
-                    className={`mobile-card ${selected.includes(d.id_vestido) ? "selected" : ""} ${d.stock_total <= LOW_STOCK_LIMIT || stockByColor(d.variantes).some((c) => c.quantity <= LOW_STOCK_LIMIT) ? "inventory-stock-low" : ""}`}
+                    className={`mobile-card inventory-dress-card ${selected.includes(d.id_vestido) ? "selected" : ""}`}
                   >
-                    <span className="card-heading flex justify-between gap-3">
-                      <strong>
-                        {d.numero_vestido}. {d.nombre}
-                      </strong>
-                      <span
-                        className={`stock-badge ${d.stock_total <= LOW_STOCK_LIMIT ? "color-stock-low" : ""}`}
-                      >
-                        {d.stock_total} disp.
-                        {d.stock_total <= LOW_STOCK_LIMIT
-                          ? " · Stock bajo"
-                          : ""}
+                    <span className="inventory-dress-heading">
+                      <strong>{d.nombre}</strong>
+                      <span className="inventory-selection" aria-hidden="true">
+                        {selected.includes(d.id_vestido) && <Check size={20} />}
                       </span>
                     </span>
-                    <span className="my-2 block text-sm text-muted">
+                    <span className="inventory-dress-description">
                       {d.descripcion}
                     </span>
-                    <span className="mb-2 block text-sm">
-                      {d.propietario.nombre} · Ubicación:{" "}
-                      <strong>{d.ubicacion_almacen ?? "Sin asignar"}</strong>
+                    <span className="inventory-dress-stock">
+                      {d.stock_total} disponibles
+                      {d.stock_total <= LOW_STOCK_LIMIT && (
+                        <span className="inventory-stock-note">
+                          {" "}
+                          · {d.stock_total === 0 ? "Agotado" : "Stock bajo"}
+                        </span>
+                      )}
                     </span>
-                    <Colors dress={d} />
-                    <span className="card-prices mt-3 grid grid-cols-3 gap-2 text-xs">
+                    <span className="inventory-dress-colors">
+                      {stockByColor(d.variantes).map(({ color, quantity }) => (
+                        <span key={color}>
+                          {color} · <strong>{quantity}</strong>
+                        </span>
+                      ))}
+                    </span>
+                    <span className="inventory-dress-details">
+                      <span>
+                        Ubicación:{" "}
+                        <strong>{d.ubicacion_almacen ?? "Sin asignar"}</strong>
+                      </span>
+                      <span>
+                        Dueño: <strong>{d.propietario.nombre}</strong>
+                      </span>
+                    </span>
+                    <span className="inventory-dress-prices">
                       {[
                         ["Unitario", d.precio_unitario],
                         ["Cuarta", d.precio_cuarta],
                         ["6 o más", d.precio_media_docena],
                       ].map(([label, price]) => (
                         <span key={label}>
-                          {label}
-                          <strong className="mt-1 block">{money(price)}</strong>
+                          <span>{label}</span>
+                          <strong>{money(price)}</strong>
                         </span>
                       ))}
                     </span>

@@ -1,5 +1,11 @@
 import { NavIcon } from "../components/ui/NavIcon";
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type UIEvent,
+} from "react";
 import { Button } from "../components/ui/Button";
 export function MainLayout({
   children,
@@ -10,9 +16,43 @@ export function MainLayout({
   onLogout: () => void;
   page: "inventory" | "sales";
 }) {
+  const [navHidden, setNavHidden] = useState(false);
+  const scrollPositions = useRef(
+    new WeakMap<HTMLElement, { top: number; height: number }>(),
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const reset = () => {
+      setNavHidden(false);
+      scrollPositions.current = new WeakMap();
+    };
+    reset();
+    media.addEventListener("change", reset);
+    return () => media.removeEventListener("change", reset);
+  }, [page]);
+
+  function handleScroll(event: UIEvent<HTMLElement>) {
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.closest("dialog")) return;
+    const top = Math.max(0, target.scrollTop);
+    const height = target.clientHeight;
+    const previous = scrollPositions.current.get(target);
+    if (previous && previous.height !== height) {
+      scrollPositions.current.set(target, { top, height });
+      return;
+    }
+    const delta = top - (previous?.top ?? 0);
+    if (top <= 8) setNavHidden(false);
+    else if (Math.abs(delta) < 8) return;
+    else setNavHidden(delta > 0);
+    scrollPositions.current.set(target, { top, height });
+  }
+
   return (
     <div className="app-shell md:pl-60">
-      <aside className="sidebar">
+      <aside className={`sidebar ${navHidden ? "mobile-nav-hidden" : ""}`}>
         <div className="hidden md:block">
           <div className="brand text-5xl">DAP</div>
           <p className="mt-2 tracking-[.3em] text-soft">elegancia</p>
@@ -21,6 +61,7 @@ export function MainLayout({
         <nav aria-label="Principal" className="flex w-full gap-3 md:flex-col">
           <a
             href="#ventas"
+            aria-label="Ventas"
             aria-current={page === "sales" ? "page" : undefined}
             className={`nav-item ${page === "sales" ? "nav-active" : ""}`}
           >
@@ -29,6 +70,7 @@ export function MainLayout({
           </a>
           <a
             href="#inventario"
+            aria-label="Inventario"
             aria-current={page === "inventory" ? "page" : undefined}
             className={`nav-item ${page === "inventory" ? "nav-active" : ""}`}
           >
@@ -38,6 +80,7 @@ export function MainLayout({
           <button
             disabled
             title="Disponible en una próxima etapa"
+            aria-label="Contabilidad (próximamente)"
             className="nav-item"
           >
             <NavIcon name="accounting" />
@@ -53,13 +96,10 @@ export function MainLayout({
           </Button>
         </div>
       </aside>
-      <div className="mobile-header flex shrink-0 items-center justify-between bg-ink p-4 text-white md:hidden">
-        <span className="brand text-2xl">DAP elegancia</span>
-        <button onClick={onLogout}>Salir</button>
-      </div>
       <main
         id={page === "sales" ? "ventas" : "inventario"}
         className="app-main"
+        onScrollCapture={handleScroll}
       >
         {children}
       </main>
