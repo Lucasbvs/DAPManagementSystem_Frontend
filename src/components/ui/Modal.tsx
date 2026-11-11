@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "./Button";
 export function Modal({
@@ -53,7 +54,7 @@ export function Modal({
           {title}
         </h2>
         <Button disabled={busy} onClick={onClose} aria-label="Cerrar ventana">
-          ×
+          <X size={20} aria-hidden="true" />
         </Button>
       </header>
       {children}

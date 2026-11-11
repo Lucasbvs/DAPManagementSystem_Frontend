@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { login } from "../services/auth.api";
 import { tokenStore } from "../services/token";
@@ -10,6 +11,7 @@ export function LoginPage({
   onLogin: () => void;
   expired: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -51,17 +53,35 @@ export function LoginPage({
             onChange={(e) => setEmail(e.target.value)}
           />
         </label>
-        <label>
-          Contraseña
-          <input
-            type="password"
-            required
-            maxLength={72}
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
+        <div>
+          <label htmlFor="login-password">Contraseña</label>
+          <div className="password-field">
+            <input
+              id="login-password"
+              type={showPassword ? "text" : "password"}
+              required
+              maxLength={72}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-label={
+                showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+              }
+              aria-controls="login-password"
+              onClick={() => setShowPassword((visible) => !visible)}
+            >
+              {showPassword ? (
+                <EyeOff size={20} aria-hidden="true" />
+              ) : (
+                <Eye size={20} aria-hidden="true" />
+              )}
+            </button>
+          </div>
+        </div>
         <label className="flex items-center gap-3">
           <input
             type="checkbox"

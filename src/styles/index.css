@@ -154,7 +154,7 @@ dialog::backdrop { background:rgb(12 59 69 / 45%); }
 .sale-product label{flex:1;cursor:pointer;font-weight:400}
 .sale-product input[type=checkbox]{margin-top:3px;flex-shrink:0}
 .quantity-control{display:flex;align-items:center;gap:4px}
-.quantity-control button{width:32px;height:40px;border:1px solid var(--color-soft);border-radius:6px;background:white;font-size:20px}
+.quantity-control button{display:flex;align-items:center;justify-content:center;width:32px;height:40px;border:1px solid var(--color-soft);border-radius:6px;background:white;font-size:20px}
 .quantity-control button:disabled{opacity:.4}
 .quantity-control input{margin:0!important;width:58px!important;min-height:40px!important;padding:4px!important;text-align:center}
 .sale-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -163,8 +163,6 @@ dialog::backdrop { background:rgb(12 59 69 / 45%); }
 .sale-summary{background:var(--color-canvas);border:1px solid var(--color-line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
 .sale-summary>div{display:flex;justify-content:space-between;gap:12px;font-size:14px}
 .sale-summary .sale-total{font-size:20px;border-top:1px solid var(--color-line);padding-top:12px}
-.figma-nav-icon{width:22px;height:22px;filter:brightness(0) invert(1)}
-.nav-active .figma-nav-icon{filter:none}
 @media(max-width:767px){
  .sales-page{gap:14px;padding:0;overflow:auto}
  .sales-heading{min-height:auto}.sales-heading h1{font-size:26px}.sales-heading p{font-size:12px}
@@ -267,3 +265,8 @@ input[type="number"]{appearance:textfield;-moz-appearance:textfield}
 
 .sales-table thead th{font-size:11px}
 .sales-table th:last-child,.sales-table td:last-child{padding-left:6px;padding-right:6px}
+
+.password-field { position:relative;margin-top:8px; }
+.password-field input { margin-top:0 !important;padding-right:52px !important; }
+.password-toggle { position:absolute;right:1px;top:1px;bottom:1px;width:44px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:var(--color-primary); }
+.password-toggle:hover { background:var(--color-mint); }

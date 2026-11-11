@@ -1,3 +1,4 @@
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
 import { useInventory } from "../hooks/useInventory";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -330,7 +331,7 @@ export function InventoryPage() {
           disabled={loading || !!error || !owners.length}
           onClick={() => setModal("new")}
         >
-          + Vestido
+          <Plus aria-hidden="true" /> Vestido
         </Button>
         <Button
           className="inventory-edit"
@@ -342,18 +343,7 @@ export function InventoryPage() {
           disabled={loading || !!error || !dress}
           onClick={() => setModal("edit")}
         >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m16 3 5 5-12 12-6 1 1-6L16 3Z" />
-            <path d="m13 6 5 5" />
-          </svg>
+          <Pencil aria-hidden="true" />
           Editar
         </Button>
         <Button
@@ -364,17 +354,7 @@ export function InventoryPage() {
             setModal("delete");
           }}
         >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
-          </svg>
+          <Trash2 aria-hidden="true" />
           Eliminar
         </Button>
       </div>

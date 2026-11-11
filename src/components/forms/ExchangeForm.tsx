@@ -1,3 +1,4 @@
+import { Plus, Minus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
@@ -233,7 +234,7 @@ export function ExchangeForm({
                         onClick={() => quantity(v.id, amount - 1)}
                         aria-label={`Quitar reemplazo ${v.dress.nombre} ${v.variant.color}`}
                       >
-                        −
+                        <Minus size={16} aria-hidden="true" />
                       </button>
                       <input
                         aria-label={`Cantidad a entregar ${v.dress.nombre} ${v.variant.color}`}
@@ -250,7 +251,7 @@ export function ExchangeForm({
                         onClick={() => quantity(v.id, amount + 1)}
                         aria-label={`Añadir reemplazo ${v.dress.nombre} ${v.variant.color}`}
                       >
-                        +
+                        <Plus size={16} aria-hidden="true" />
                       </button>
                     </div>
                   </div>

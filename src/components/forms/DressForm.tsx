@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
@@ -310,7 +311,12 @@ export function DressForm({
                 ])
               }
             >
-              + Añadir variante
+              <Plus
+                size={16}
+                className="inline-block align-middle"
+                aria-hidden="true"
+              />{" "}
+              Añadir variante
             </Button>
           </div>
           {error && (
