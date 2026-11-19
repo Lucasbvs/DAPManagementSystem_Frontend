@@ -2,6 +2,7 @@ export type SaleLine = {
   id_detalle: number;
   id_variante: number;
   cantidad: number;
+  cantidad_cancelada: number;
   tipo: "Entrega" | "Devolucion";
   id_detalle_origen: number | null;
   precio_unitario_aplicado: string;
@@ -27,15 +28,19 @@ export type Sale = {
   id_venta: number;
   numero_diario: number;
   fecha: string;
-  estado: "Realizada" | "Cancelada";
+  estado: "Pendiente" | "Realizada" | "Cancelada";
   tipo: "Venta" | "Cambio";
+  reemplazo_completo: boolean;
   id_venta_origen: number | null;
   venta_origen: {
     id_venta: number;
     numero_diario: number;
     fecha: string;
   } | null;
-  cambios: { id_venta: number; estado: "Realizada" | "Cancelada" }[];
+  cambios: {
+    id_venta: number;
+    estado: "Pendiente" | "Realizada" | "Cancelada";
+  }[];
   hora_entrega_desde: string | null;
   hora_entrega_hasta: string | null;
   monto_devolucion: string;
@@ -59,6 +64,7 @@ export type Sale = {
   costo_delivery: string;
   departamento_destino: string | null;
   ciudad_provincia: string | null;
+  forma_pago: "Pagado" | "Por_pagar";
   costo_envio: string | null;
   total_cobrado: string;
   monto_neto: string;
@@ -78,6 +84,7 @@ export type SaleInput = {
   adicional_delivery: string;
   departamento_destino: string | null;
   ciudad_provincia: string | null;
+  forma_pago: "Pagado" | "Por_pagar";
   costo_envio: string | null;
 };
 export type ExchangeInput = {

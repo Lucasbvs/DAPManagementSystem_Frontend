@@ -15,6 +15,24 @@ export const salesApi = {
   exchange: async (sale: Sale, input: ExchangeInput) =>
     (await api.post(`/ventas/${sale.id_venta}/cambios`, input)).data
       .data as Sale,
+  confirmMany: async (
+    ventas: {
+      id_venta: number;
+      version: number;
+      costo_envio?: string;
+      entregas: { id_detalle: number; cantidad: number }[];
+    }[],
+  ) => (await api.post("/ventas/entregas", { ventas })).data.data as Sale[],
+  confirm: async (
+    sale: Sale,
+    entregas: { id_detalle: number; cantidad: number }[],
+  ) =>
+    (
+      await api.post(`/ventas/${sale.id_venta}/entrega`, {
+        version: sale.version,
+        entregas,
+      })
+    ).data.data as Sale,
   cancel: async (sale: Sale) =>
     (
       await api.post(`/ventas/${sale.id_venta}/cancelar`, {

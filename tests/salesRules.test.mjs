@@ -13,7 +13,7 @@ const data = (source) =>
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
 const types = data(await compile("../src/types/sales.ts"));
 const rules = (await compile("../src/services/salesRules.ts")).replace(
-  "'../types/sales'",
+  /['"]\.\.\/types\/sales['"]/,
   JSON.stringify(types),
 );
 const {
@@ -21,6 +21,7 @@ const {
   differenceLabel,
   availableReturn,
   linesForOwner,
+  matchesCustomerPhone,
   whatsappMessage,
   whatsappUrl,
 } = await import(data(rules));
@@ -107,4 +108,47 @@ test("cambios detallan devolver/entregar y limitan devoluciones y filtro al due�
   assert.match(message, /↩️: Devolver/);
   assert.match(message, /🛍️: Entregar/);
   assert.match(message, /💰: Devolver/);
+});
+
+test("prendas canceladas no se vuelven a devolver ni se incluyen en WhatsApp", () => {
+  assert.equal(availableReturn({ ...line, cantidad_cancelada: 1 }), 1);
+  const message = whatsappMessage({
+    ...sale,
+    detalles: [{ ...line, cantidad_cancelada: 2 }],
+  });
+  assert.match(message, /×1/);
+  assert.equal(
+    whatsappMessage({
+      ...sale,
+      detalles: [{ ...line, cantidad_cancelada: 3 }],
+    }).includes("Aurora & Dalia"),
+    false,
+  );
+});
+test("un reemplazo completo muestra el total del pedido", () => {
+  const message = whatsappMessage({
+    ...sale,
+    tipo: "Cambio",
+    reemplazo_completo: true,
+    venta_origen: { numero_diario: 1 },
+  });
+  assert.match(message, /Monto a cobrar/);
+});
+
+test("búsqueda por celular parcial, formato y teléfono histórico del pedido", () => {
+  const order = {
+    ...sale,
+    cliente_celular: "+591 700-12345",
+    cliente: { celular: "79999999" },
+  };
+  assert.equal(matchesCustomerPhone(order, "7001"), true);
+  assert.equal(matchesCustomerPhone(order, "+591 (700) 12345"), true);
+  assert.equal(matchesCustomerPhone(order, "79999999"), false);
+  assert.equal(
+    matchesCustomerPhone({ ...order, cliente_celular: null }, "7999"),
+    true,
+  );
+  assert.equal(matchesCustomerPhone(order, "  "), true);
+  assert.equal(matchesCustomerPhone(order, "cliente"), false);
+  assert.equal(matchesCustomerPhone(order, "+"), false);
 });

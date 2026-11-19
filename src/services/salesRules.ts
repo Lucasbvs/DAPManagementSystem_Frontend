@@ -1,4 +1,13 @@
 import { money, orderNumber, type Sale, type SaleLine } from "../types/sales";
+export function matchesCustomerPhone(sale: Sale, query: string) {
+  if (!query.trim()) return true;
+  const normalize = (value: string) => value.replace(/[\s()+-]/g, "");
+  const digits = normalize(query);
+  return (
+    /^\d+$/.test(digits) &&
+    normalize(sale.cliente_celular ?? sale.cliente.celular).includes(digits)
+  );
+}
 export function registrationKey() {
   const a = crypto.getRandomValues(new Uint8Array(16));
   a[6] = (a[6] & 15) | 64;
@@ -26,6 +35,7 @@ export const availableReturn = (line: SaleLine) =>
     : Math.max(
         0,
         line.cantidad -
+          (line.cantidad_cancelada ?? 0) -
           (line.devoluciones ?? []).reduce((n, d) => n + d.cantidad, 0),
       );
 export const linesForOwner = (sale: Sale, owner: string) =>
@@ -45,11 +55,14 @@ export function differenceLabel(amount: string | number) {
       : "Sin diferencia";
 }
 function dressText(d: SaleLine) {
-  return `${d.nombre_vestido ?? d.variante.vestido.nombre} ×${d.cantidad} (${d.color ?? d.variante.color}${d.talla ? ` / ${d.talla}` : ""}) — Almacén: ${d.variante.vestido.ubicacion_almacen ?? d.ubicacion_almacen ?? "Sin asignar"}`;
+  return `${d.nombre_vestido ?? d.variante.vestido.nombre} ×${d.cantidad - (d.cantidad_cancelada ?? 0)} (${d.color ?? d.variante.color}${d.talla ? ` / ${d.talla}` : ""}) — Almacén: ${d.variante.vestido.ubicacion_almacen ?? d.ubicacion_almacen ?? "Sin asignar"}`;
 }
 export function whatsappMessage(sale: Sale) {
   const incoming = sale.detalles.filter((d) => d.tipo === "Devolucion"),
-    outgoing = sale.detalles.filter((d) => d.tipo !== "Devolucion");
+    outgoing = sale.detalles.filter(
+      (d) =>
+        d.tipo !== "Devolucion" && d.cantidad > (d.cantidad_cancelada ?? 0),
+    );
   const place = sale.departamento_destino
     ? [sale.departamento_destino.replaceAll("_", " "), sale.ciudad_provincia]
         .filter(Boolean)
@@ -69,7 +82,7 @@ export function whatsappMessage(sale: Sale) {
     `📞: ${sale.cliente_celular ?? sale.cliente.celular}`,
     `📍: ${place}`,
     `🕒: Entrega ${deliveryTime(sale.hora_entrega_desde, sale.hora_entrega_hasta)}`,
-    `💰: ${sale.tipo === "Cambio" ? differenceLabel(sale.total_cobrado) : `Monto a cobrar ${money(sale.total_cobrado)}`}`,
+    `💰: ${sale.tipo === "Cambio" && !sale.reemplazo_completo ? differenceLabel(sale.total_cobrado) : `Monto a cobrar ${money(sale.total_cobrado)}`}`,
   ].join("\n");
 }
 export const whatsappUrl = (sale: Sale) =>

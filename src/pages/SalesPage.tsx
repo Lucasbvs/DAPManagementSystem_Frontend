@@ -1,3 +1,5 @@
+import { CheckCheck, Search, X } from "lucide-react";
+import { DeliveryForm } from "../components/forms/DeliveryForm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
@@ -17,6 +19,7 @@ import {
   deliveryTime,
   differenceLabel,
   linesForOwner,
+  matchesCustomerPhone,
   whatsappUrl,
 } from "../services/salesRules";
 import {
@@ -63,7 +66,9 @@ function LineList({ sale, owner }: { sale: Sale; owner: string }) {
             : ""}
           {d.nombre_vestido ?? d.variante.vestido.nombre} ·{" "}
           {d.color ?? d.variante.color}
-          {d.talla ? ` / ${d.talla}` : ""} ×{d.cantidad}
+          {d.talla ? ` / ${d.talla}` : ""} ×
+          {d.cantidad - (d.cantidad_cancelada ?? 0)}
+          {d.cantidad_cancelada > 0 && ` · ${d.cantidad_cancelada} canceladas`}
         </span>
       ))}
     </span>
@@ -72,17 +77,21 @@ function LineList({ sale, owner }: { sale: Sale; owner: string }) {
 export function SalesPage() {
   const [date, setDate] = useState(today),
     [owner, setOwner] = useState(""),
+    [phoneQuery, setPhoneQuery] = useState(""),
     [owners, setOwners] = useState<Owner[]>([]);
   const [sales, setSales] = useState<Sale[]>([]),
     [selected, setSelected] = useState<number[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const [modal, setModal] = useState<
-      "new" | "edit" | "cancel" | "exchange" | null
+      "new" | "edit" | "cancel" | "exchange" | "delivery" | null
     >(null),
     [busy, setBusy] = useState(false),
     [actionError, setActionError] = useState(""),
     [result, setResult] = useState<ActionResult | null>(null);
+  const [summaryHidden, setSummaryHidden] = useState(false);
+  const salesScroll = useRef<HTMLDivElement>(null);
+  const summaryScroll = useRef({ top: 0, height: 0 });
   const revision = useRef(0),
     alive = useRef(false);
   const reload = useCallback(async () => {
@@ -97,7 +106,7 @@ export function SalesPage() {
         setOwners(people);
         setSelected((ids) =>
           ids.filter((id) =>
-            rows.some((s) => s.id_venta === id && s.estado === "Realizada"),
+            rows.some((s) => s.id_venta === id && s.estado !== "Cancelada"),
           ),
         );
         setError("");
@@ -112,6 +121,8 @@ export function SalesPage() {
   useEffect(() => {
     alive.current = true;
     setLoading(true);
+    setSummaryHidden(false);
+    summaryScroll.current = { top: 0, height: 0 };
     setSales([]);
     setSelected([]);
     void reload();
@@ -136,11 +147,22 @@ export function SalesPage() {
       window.removeEventListener("online", refresh);
     };
   }, [reload]);
-  const active = sales.filter((s) => s.estado === "Realizada"),
-    chosen = active.filter((s) => selected.includes(s.id_venta)),
+  const visibleSales = sales.filter((sale) =>
+    matchesCustomerPhone(sale, phoneQuery),
+  );
+  const active = sales.filter((s) => s.estado !== "Cancelada"),
+    visibleActive = visibleSales.filter((s) => s.estado !== "Cancelada"),
+    chosen = visibleActive.filter((s) => selected.includes(s.id_venta)),
     one = chosen.length === 1 ? chosen[0] : undefined;
-  const canEdit = !!one && one.tipo !== "Cambio" && !one.cambios.length,
-    canExchange = !!one && one.detalles.some((d) => availableReturn(d) > 0);
+  const canEdit =
+      !!one &&
+      one.estado === "Pendiente" &&
+      one.tipo !== "Cambio" &&
+      !one.cambios.length,
+    canExchange =
+      !!one &&
+      one.estado === "Realizada" &&
+      one.detalles.some((d) => availableReturn(d) > 0);
   const blocked = busy || loading || !!error;
   const sum = (
     field:
@@ -210,6 +232,7 @@ export function SalesPage() {
   }
   function saved(s: Sale) {
     const kind = modal;
+    setPhoneQuery("");
     setModal(null);
     setSelected([]);
     setResult({
@@ -231,7 +254,71 @@ export function SalesPage() {
   }
   return (
     <div className="sales-page">
-      <section className="panel sales-stat" aria-label="Resumen de ventas">
+      <div
+        className={`sales-mobile-overview md:hidden ${summaryHidden ? "sales-overview-hidden" : ""}`}
+        aria-hidden={summaryHidden}
+      >
+        <div className="sales-mobile-overview-content">
+          <header className="sales-mobile-title">
+            <h1>Ventas</h1>
+            <label>
+              <span className="sr-only">Fecha de ventas</span>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(event) => {
+                  if (event.target.value) {
+                    setDate(event.target.value);
+                    setActionError("");
+                  }
+                }}
+              />
+            </label>
+          </header>
+          <section
+            className="panel sales-mobile-summary"
+            aria-label="Resumen de ventas de la fecha seleccionada"
+          >
+            <div className="sales-mobile-net">
+              <span>
+                {owner ? "Venta neta filtrada del día" : "Venta neta del día"}
+              </span>
+              <strong>
+                {loading ? "…" : money(decimal(sum("monto_neto")))}
+              </strong>
+            </div>
+            <dl>
+              <div>
+                <dt>Cobrado</dt>
+                <dd>{loading ? "…" : money(decimal(sum("total_cobrado")))}</dd>
+              </div>
+              <div>
+                <dt>Adicional de delivery</dt>
+                <dd>
+                  {loading ? "…" : money(decimal(sum("adicional_delivery")))}
+                </dd>
+              </div>
+              <div>
+                <dt>Delivery descontado</dt>
+                <dd>
+                  {loading ? "…" : `− ${money(decimal(sum("costo_delivery")))}`}
+                </dd>
+              </div>
+              {sum("costo_envio") > 0 && (
+                <div>
+                  <dt>Envíos</dt>
+                  <dd>{money(decimal(sum("costo_envio")))}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
+        </div>
+      </div>
+      <section
+        className="panel sales-stat sales-desktop-stat"
+        aria-label="Resumen de ventas"
+      >
         <p>
           {owner
             ? "TOTAL NETO DE PEDIDOS FILTRADOS"
@@ -254,8 +341,30 @@ export function SalesPage() {
       )}
       <section className="sales-list">
         <div className="sales-list-heading">
-          <h2>Ventas del día</h2>
+          <h2 className="sales-desktop-title">Ventas del día</h2>
           <div className="sales-filters">
+            <label className="sales-phone-search">
+              <span className="sr-only">
+                Buscar por celular en las ventas del día seleccionado
+              </span>
+              <Search size={18} aria-hidden="true" />
+              <input
+                type="search"
+                inputMode="tel"
+                placeholder="Buscar por celular"
+                maxLength={40}
+                value={phoneQuery}
+                disabled={busy}
+                onChange={(event) => {
+                  setPhoneQuery(event.target.value);
+                  setSelected([]);
+                  setActionError("");
+                  setSummaryHidden(false);
+                  summaryScroll.current = { top: 0, height: 0 };
+                  salesScroll.current?.scrollTo({ top: 0 });
+                }}
+              />
+            </label>
             <label>
               <span className="sr-only">Filtrar ventas por dueño</span>
               <select
@@ -274,7 +383,7 @@ export function SalesPage() {
                 ))}
               </select>
             </label>
-            <label>
+            <label className="sales-desktop-date">
               <span className="sr-only">Filtrar ventas por fecha</span>
               <input
                 aria-label="Filtrar ventas por fecha"
@@ -289,10 +398,59 @@ export function SalesPage() {
                 }}
               />
             </label>
+            <div className="sales-mobile-select md:hidden">
+              <Button
+                className="sales-select-all"
+                disabled={blocked || !visibleActive.length}
+                aria-pressed={
+                  visibleActive.length > 0 &&
+                  visibleActive.every((sale) =>
+                    selected.includes(sale.id_venta),
+                  )
+                }
+                onClick={() =>
+                  setSelected(
+                    visibleActive.every((sale) =>
+                      selected.includes(sale.id_venta),
+                    )
+                      ? []
+                      : visibleActive.map((sale) => sale.id_venta),
+                  )
+                }
+              >
+                <CheckCheck size={16} aria-hidden="true" />
+                {visibleActive.length > 0 &&
+                visibleActive.every((sale) => selected.includes(sale.id_venta))
+                  ? "Deseleccionar todas"
+                  : "Seleccionar todas"}
+              </Button>
+            </div>
           </div>
         </div>
         <div
+          ref={salesScroll}
           className="sales-scroll"
+          onScroll={(event) => {
+            if (!window.matchMedia("(max-width: 767px)").matches) return;
+            const { scrollTop, clientHeight } = event.currentTarget;
+            const top = Math.max(0, scrollTop);
+            const previous = summaryScroll.current;
+            // El inicio tiene prioridad, incluso si la navegación o el resumen están animándose.
+            if (top <= 1) {
+              setSummaryHidden(false);
+              summaryScroll.current = { top, height: clientHeight };
+              return;
+            }
+            // La animación cambia la altura de la lista y puede ajustar su scroll.
+            if (previous.height && previous.height !== clientHeight) {
+              summaryScroll.current = { top, height: clientHeight };
+              return;
+            }
+            const delta = top - previous.top;
+            if (delta >= 8) setSummaryHidden(true);
+            else if (Math.abs(delta) < 8) return;
+            summaryScroll.current = { top, height: clientHeight };
+          }}
           tabIndex={0}
           aria-label="Ventas de la fecha seleccionada"
         >
@@ -315,17 +473,21 @@ export function SalesPage() {
                     <th>
                       <input
                         type="checkbox"
-                        aria-label="Seleccionar todas las ventas realizadas"
-                        disabled={!active.length}
+                        aria-label="Seleccionar todas las ventas visibles"
+                        disabled={!visibleActive.length}
                         checked={
-                          !!active.length &&
-                          active.every((s) => selected.includes(s.id_venta))
+                          !!visibleActive.length &&
+                          visibleActive.every((s) =>
+                            selected.includes(s.id_venta),
+                          )
                         }
                         onChange={() =>
                           setSelected(
-                            active.every((s) => selected.includes(s.id_venta))
+                            visibleActive.every((s) =>
+                              selected.includes(s.id_venta),
+                            )
                               ? []
-                              : active.map((s) => s.id_venta),
+                              : visibleActive.map((s) => s.id_venta),
                           )
                         }
                       />
@@ -347,12 +509,12 @@ export function SalesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sales.map((s) => (
+                  {visibleSales.map((s) => (
                     <tr
                       key={s.id_venta}
                       className={`${selected.includes(s.id_venta) ? "selected" : ""} ${s.estado === "Cancelada" ? "sale-cancelled" : ""}`}
                       onClick={() => {
-                        if (s.estado === "Realizada") toggle(s.id_venta);
+                        if (s.estado !== "Cancelada") toggle(s.id_venta);
                       }}
                     >
                       <td>
@@ -389,7 +551,7 @@ export function SalesPage() {
                       <td>{s.total_prendas}</td>
                       <td>{money(s.adicional_delivery)}</td>
                       <td>
-                        {s.tipo === "Cambio"
+                        {s.tipo === "Cambio" && !s.reemplazo_completo
                           ? differenceLabel(s.total_cobrado)
                           : money(s.total_cobrado)}
                       </td>
@@ -403,7 +565,7 @@ export function SalesPage() {
                 </tbody>
               </table>
               <div className="sales-mobile-cards">
-                {sales.map((s) => (
+                {visibleSales.map((s) => (
                   <article
                     key={s.id_venta}
                     className={`mobile-card sale-mobile-card ${selected.includes(s.id_venta) ? "selected" : ""} ${s.estado === "Cancelada" ? "sale-cancelled" : ""}`}
@@ -445,12 +607,12 @@ export function SalesPage() {
                     <footer className="sale-card-footer">
                       <div>
                         <span className="text-xs text-muted">
-                          {s.tipo === "Cambio"
+                          {s.tipo === "Cambio" && !s.reemplazo_completo
                             ? "Diferencia"
                             : "Total del pedido"}
                         </span>
                         <strong>
-                          {s.tipo === "Cambio"
+                          {s.tipo === "Cambio" && !s.reemplazo_completo
                             ? differenceLabel(s.total_cobrado)
                             : money(s.total_cobrado)}
                         </strong>
@@ -460,9 +622,11 @@ export function SalesPage() {
                   </article>
                 ))}
               </div>
-              {!sales.length && (
+              {!visibleSales.length && (
                 <p className="p-10 text-center text-muted">
-                  No hay ventas para los filtros elegidos.
+                  {phoneQuery.trim()
+                    ? "No hay ventas con ese celular para la fecha y los filtros seleccionados."
+                    : "No hay ventas para los filtros elegidos."}
                 </p>
               )}
             </>
@@ -470,13 +634,24 @@ export function SalesPage() {
         </div>
       </section>
       <div className="sales-action-bar">
-        <div className="sales-selection">
-          {chosen.length > 0 && (
-            <button onClick={() => setSelected([])} disabled={busy}>
+        {chosen.length > 0 && (
+          <div className="sales-selection">
+            <span role="status">
+              {chosen.length}{" "}
+              {chosen.length === 1
+                ? "venta seleccionada"
+                : "ventas seleccionadas"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelected([])}
+              disabled={busy}
+            >
+              <X size={16} aria-hidden="true" />
               Limpiar selección
             </button>
-          )}
-        </div>
+          </div>
+        )}
         <div
           className={`sales-actions ${chosen.length ? "has-selection" : ""}`}
         >
@@ -490,25 +665,32 @@ export function SalesPage() {
             Registrar venta
           </Button>
           <div className="sales-secondary-actions">
-            <Button
-              title={
-                one && !canEdit
-                  ? "El pedido conserva historial de cambios"
-                  : undefined
-              }
-              disabled={!canEdit || blocked}
-              onClick={() => setModal("edit")}
-            >
-              <SalesIcon name="edit" />
-              Editar venta
-            </Button>
-            <Button
-              disabled={!canExchange || blocked}
-              onClick={() => setModal("exchange")}
-            >
-              <SalesIcon name="exchange" />
-              Cambio de vestido
-            </Button>
+            {chosen.some((sale) => sale.estado === "Pendiente") && (
+              <Button
+                disabled={
+                  blocked || chosen.some((sale) => sale.estado !== "Pendiente")
+                }
+                title="Selecciona únicamente ventas pendientes"
+                onClick={() => setModal("delivery")}
+              >
+                <CheckCheck aria-hidden="true" /> Confirmar entrega
+              </Button>
+            )}
+            {canEdit && (
+              <Button disabled={blocked} onClick={() => setModal("edit")}>
+                <SalesIcon name="edit" />
+                Editar venta
+              </Button>
+            )}
+            {one?.estado === "Realizada" && (
+              <Button
+                disabled={!canExchange || blocked}
+                onClick={() => setModal("exchange")}
+              >
+                <SalesIcon name="exchange" />
+                Cambio de vestido
+              </Button>
+            )}
             <Button
               disabled={!chosen.length || blocked}
               onClick={() => void print()}
@@ -540,6 +722,21 @@ export function SalesPage() {
           sale={modal === "new" ? undefined : one}
           onClose={() => setModal(null)}
           onSaved={saved}
+        />
+      )}
+      {modal === "delivery" && chosen.length > 0 && (
+        <DeliveryForm
+          sales={chosen}
+          onClose={() => setModal(null)}
+          onSaved={(rows) => {
+            setModal(null);
+            setSelected([]);
+            setResult({
+              title: "Entregas registradas",
+              message: `${rows.filter((row) => row.estado === "Realizada").length} ventas realizadas y ${rows.filter((row) => row.estado === "Cancelada").length} canceladas.`,
+            });
+            void reload();
+          }}
         />
       )}
       {modal === "exchange" && one && (

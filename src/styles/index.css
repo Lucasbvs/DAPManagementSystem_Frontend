@@ -134,10 +134,11 @@ dialog::backdrop { background:rgb(12 59 69 / 45%); }
 .sales-list-heading label{width:272px}
 .sales-list-heading input{margin:0!important;border-color:var(--color-soft)!important;color:var(--color-primary);font-size:14px!important}
 .sales-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
-.sales-table{border-collapse:collapse;width:100%;min-width:1020px;table-layout:fixed;text-align:left;font-size:12px}
+.sales-table{--sales-grid-color:#b8d5d1;border-collapse:separate;border-spacing:0;width:100%;min-width:1020px;table-layout:fixed;text-align:left;font-size:12px}
 .sales-table thead{background:var(--color-mint)}
-.sales-table th,.sales-table td{padding:14px 10px;overflow-wrap:anywhere;vertical-align:middle}
-.sales-table thead th{height:52px;font-weight:700;position:sticky;top:0;background:var(--color-mint)}
+.sales-table th,.sales-table td{padding:14px 10px;border-right:1px solid var(--sales-grid-color);border-bottom:1px solid var(--sales-grid-color);overflow-wrap:anywhere;vertical-align:middle}
+.sales-table tr>:first-child{border-left:1px solid var(--sales-grid-color)}
+.sales-table thead th{height:52px;border-top:1px solid var(--sales-grid-color);font-weight:700;position:sticky;top:0;z-index:2;background:var(--color-mint)}
 .sales-table tbody th{font-weight:400}
 .sales-table tbody tr{height:56px;cursor:pointer}
 .sales-table tbody tr:hover{background:var(--color-canvas)}
@@ -213,7 +214,7 @@ input[type="number"]{appearance:textfield;-moz-appearance:textfield}
 .whatsapp-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px;border:1px solid #acd4b7;border-radius:8px;color:#146c37;background:#effaf2;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap}
 .whatsapp-link:hover{background:#dcf4e3}.whatsapp-link svg{width:20px;height:20px;flex-shrink:0}.whatsapp-link.disabled{opacity:.45;cursor:default}
 .sales-action-bar{flex-shrink:0}.sales-selection{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;color:var(--color-muted);margin-bottom:10px}
-.sales-selection>button{color:var(--color-primary);text-decoration:underline;min-height:28px}
+.sales-selection>button{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-left:auto;min-height:44px;padding:6px 10px;border:1px solid var(--color-line);border-radius:8px;background:white;color:var(--color-primary);font-size:12px;text-decoration:none;white-space:nowrap}.sales-selection>button:hover:not(:disabled){background:var(--color-mint)}.sales-selection>button:disabled{opacity:.5}
 .sales-secondary-actions{display:flex;flex:4;gap:12px;min-width:0}
 .sales-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .sales-actions .btn svg{width:19px;height:19px;flex-shrink:0}
@@ -256,7 +257,7 @@ input[type="number"]{appearance:textfield;-moz-appearance:textfield}
 }
 
 .sales-table thead th{overflow-wrap:normal}
-.sales-table th:last-child,.sales-table td:last-child{position:sticky;right:0;background:white;box-shadow:-1px 0 #dfeae8;z-index:1}
+.sales-table th:last-child,.sales-table td:last-child{position:sticky;right:0;background:white;box-shadow:-1px 0 var(--sales-grid-color);z-index:1}
 .sales-table thead th:last-child{background:var(--color-mint);z-index:3}
 .sales-table tr.selected td:last-child{background:var(--color-mint)}
 .sales-table tr.sale-cancelled td:last-child{background:var(--color-canvas)}
@@ -322,4 +323,55 @@ input[type="number"]{appearance:textfield;-moz-appearance:textfield}
  .inventory-mobile-heading.inventory-summary-hidden,
  .sidebar,
  .sidebar.mobile-nav-hidden { transition:none; }
+}
+@media (max-width:767px) {
+ .sales-mobile-overview { display:grid;grid-template-rows:1fr;flex-shrink:0;opacity:1;visibility:visible;transform:translateY(0);transition:grid-template-rows 320ms ease,margin-bottom 320ms ease,opacity 240ms ease,transform 320ms ease,visibility 0s; }
+ .sales-mobile-overview-content { min-height:0;overflow:hidden; }
+ .sales-mobile-overview.sales-overview-hidden { grid-template-rows:0fr;margin-bottom:-10px;opacity:0;visibility:hidden;transform:translateY(-8px);transition-delay:0s,0s,0s,0s,320ms; }
+ .sales-mobile-title { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px; }
+ .sales-mobile-title h1 { font-size:28px;font-weight:800; }
+ .sales-mobile-title label { width:158px;min-width:0; }
+ .sales-mobile-title input { margin-top:0!important;min-width:0;font-size:13px!important; }
+ .sales-mobile-summary { padding:12px; }
+ .sales-mobile-net { display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px; }
+ .sales-mobile-net strong { font-size:21px;overflow-wrap:anywhere; }
+ .sales-mobile-summary dl { display:grid;gap:3px;margin-top:7px;padding-top:7px;border-top:1px solid var(--color-line);font-size:12px; }
+ .sales-mobile-summary dl > div { display:flex;justify-content:space-between;gap:12px; }
+ .sales-mobile-summary dt { color:var(--color-muted); }
+ .sales-mobile-summary dd { font-weight:600;text-align:right; }
+ .sales-desktop-stat,.sales-desktop-title,.sales-desktop-date { display:none; }
+ .sales-page .sales-filters { grid-template-columns:1fr; }
+ .sales-page .sales-list { padding:0;background:transparent; }
+ .sales-page .sales-scroll { overflow-anchor:none; }
+ .sales-page .sales-mobile-cards { padding:2px; }
+ .sales-page .sale-card-select { padding:12px;line-height:1.35; }
+ .sales-page .sale-card-phone { margin-top:4px; }
+ .sales-page .sale-card-time { margin:4px 0; }
+ .sales-page .sale-card-footer { padding:7px 12px; }
+ .sales-page .sales-selection:empty { display:none; }
+ .sales-page .sales-actions.has-selection .sales-register { display:none; }
+ .sales-page .sales-secondary-actions { margin-top:0; }
+ .sales-page .sales-actions .btn { min-height:44px;border-radius:8px;font-size:12px;padding:6px 8px; }
+ .sales-page .sales-register { font-size:14px; }
+}
+@media (max-width:767px) and (prefers-reduced-motion:reduce) {
+ .sales-mobile-overview,.sales-mobile-overview.sales-overview-hidden { transition:none; }
+}
+
+@media (max-width:767px) {
+ .sales-page .sales-filters { grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px; }
+ .sales-page .sales-filters > label { min-width:0; }
+ .sales-page .sales-filters select { width:100%;min-width:0; }
+ .sales-mobile-select .sales-select-all { display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:36px;padding:5px 7px;font-size:11px;border-radius:8px;white-space:nowrap; }
+ .sales-select-all svg { flex-shrink:0; }
+}
+
+/* Búsqueda por celular dentro de las ventas del día. */
+.sales-list-heading { flex-wrap:wrap; }
+.sales-filters { flex-wrap:wrap; }
+.sales-list-heading .sales-filters .sales-phone-search { position:relative;flex:1;min-width:200px; }
+.sales-phone-search svg { position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--color-muted);pointer-events:none; }
+.sales-list-heading .sales-phone-search input { padding-left:36px!important; }
+@media (max-width:767px) {
+ .sales-list-heading .sales-filters .sales-phone-search { grid-column:1 / -1;min-width:0;width:100%; }
 }

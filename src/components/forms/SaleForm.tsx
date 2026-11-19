@@ -64,7 +64,11 @@ export function SaleForm({
       sale?.departamento_destino ?? "Cochabamba",
     ),
     [city, setCity] = useState(sale?.ciudad_provincia ?? ""),
-    [shippingCost, setShippingCost] = useState(sale?.costo_envio ?? "0");
+    [shippingCost, setShippingCost] = useState(sale?.costo_envio ?? "");
+  const [payment, setPayment] = useState<SaleInput["forma_pago"]>(
+    sale?.forma_pago ?? "Por_pagar",
+  );
+  const paidShipping = shipping && payment === "Pagado";
   const total = Object.values(quantities).reduce((n, q) => n + q, 0),
     tariff = total >= 6 ? "media_docena" : total >= 3 ? "cuarta" : "unitario";
   const variants = dresses.flatMap((d) =>
@@ -94,7 +98,7 @@ export function SaleForm({
   const subtotal = chosen.reduce((n, v) => n + price(v) * quantities[v.id], 0),
     net = subtotal - cents(sale?.costo_delivery ?? "10");
   const charged =
-    subtotal + cents(additional) + (shipping ? cents(shippingCost) : 0);
+    subtotal + cents(additional) + (paidShipping ? cents(shippingCost) : 0);
   const unavailable =
     chosen.some((v) => quantities[v.id] > v.available) ||
     Object.keys(quantities).some(
@@ -113,6 +117,12 @@ export function SaleForm({
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy || !total || unavailable || (range && end <= start)) return;
+    if (shipping && !customer.nombre.trim()) {
+      setError(
+        "El nombre del cliente es obligatorio para envíos a otro departamento o ciudad",
+      );
+      return;
+    }
     setBusy(true);
     setError("");
     const data: SaleInput = {
@@ -133,7 +143,8 @@ export function SaleForm({
       adicional_delivery: additional || "0",
       departamento_destino: shipping ? department : null,
       ciudad_provincia: shipping ? city : null,
-      costo_envio: shipping ? shippingCost : null,
+      forma_pago: payment,
+      costo_envio: paidShipping && shippingCost !== "" ? shippingCost : null,
     };
     try {
       onSaved(await salesApi.save(data, sale?.id_venta));
@@ -265,8 +276,9 @@ export function SaleForm({
             />
           </label>
           <label>
-            Nombre
+            Nombre{shipping ? " *" : " (opcional)"}
             <input
+              required={shipping}
               maxLength={100}
               value={customer.nombre}
               onChange={(e) =>
@@ -274,7 +286,7 @@ export function SaleForm({
               }
             />
           </label>
-          <label className="sale-field-wide">
+          <label>
             Dirección de entrega
             <input
               maxLength={255}
@@ -284,7 +296,7 @@ export function SaleForm({
               }
             />
           </label>
-          <label className="sale-field-wide">
+          <label>
             Enlace de ubicación
             <input
               type="url"
@@ -319,6 +331,34 @@ export function SaleForm({
             />
             Envío a otro departamento / ciudad
           </label>
+          <div className="sale-fields">
+            <label>
+              Forma de pago
+              <select
+                value={payment}
+                onChange={(e) =>
+                  setPayment(e.target.value as SaleInput["forma_pago"])
+                }
+              >
+                <option value="Pagado">Pagado</option>
+                <option value="Por_pagar">Por pagar</option>
+              </select>
+            </label>
+            {paidShipping && (
+              <label>
+                Costo de envío (Bs, opcional)
+                <input
+                  placeholder="0.00"
+                  type="number"
+                  min="0"
+                  max="99999999.99"
+                  step="0.01"
+                  value={shippingCost}
+                  onChange={(e) => setShippingCost(e.target.value)}
+                />
+              </label>
+            )}
+          </div>
           {shipping && (
             <div className="sale-fields">
               <label>
@@ -340,18 +380,6 @@ export function SaleForm({
                   maxLength={100}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                />
-              </label>
-              <label>
-                Costo del envío (Bs)
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  max="99999999.99"
-                  step="0.01"
-                  value={shippingCost}
-                  onChange={(e) => setShippingCost(e.target.value)}
                 />
               </label>
             </div>
@@ -376,7 +404,7 @@ export function SaleForm({
             <span>Delivery adicional</span>
             <strong>{money(additional)}</strong>
           </div>
-          {shipping && (
+          {paidShipping && (
             <div>
               <span>Envío departamental</span>
               <strong>{money(shippingCost)}</strong>

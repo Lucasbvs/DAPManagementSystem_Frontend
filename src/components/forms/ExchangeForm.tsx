@@ -42,17 +42,16 @@ export function ExchangeForm({
   const available = source.detalles.filter((d) => availableReturn(d) > 0),
     chosenReturns = available.filter((d) => (returns[d.id_detalle] ?? 0) > 0);
   const total = Object.values(quantities).reduce((n, q) => n + q, 0);
+  const returnVariantIds = new Set(available.map((line) => line.id_variante));
   const variants = dresses.flatMap((dress) =>
-    dress.variantes.map((variant) => ({
-      id: variant.id_variante!,
-      dress,
-      variant,
-      stock:
-        variant.cantidad_stock +
-        chosenReturns
-          .filter((d) => d.id_variante === variant.id_variante)
-          .reduce((n, d) => n + returns[d.id_detalle], 0),
-    })),
+    dress.variantes
+      .filter((variant) => !returnVariantIds.has(variant.id_variante!))
+      .map((variant) => ({
+        id: variant.id_variante!,
+        dress,
+        variant,
+        stock: variant.cantidad_stock,
+      })),
   );
   const chosen = variants.filter((v) => (quantities[v.id] ?? 0) > 0);
   const price = (v: (typeof variants)[number]) =>
@@ -69,6 +68,18 @@ export function ExchangeForm({
   );
   const delivered = chosen.reduce((n, v) => n + price(v) * quantities[v.id], 0),
     difference = delivered - returned;
+  const retained = available.reduce(
+    (sum, line) =>
+      sum +
+      cents(line.precio_unitario_aplicado) *
+        (availableReturn(line) - (returns[line.id_detalle] ?? 0)),
+    0,
+  );
+  const replacementTotal =
+    retained +
+    delivered +
+    cents(source.adicional_delivery) +
+    cents(source.costo_envio);
   const invalid =
     chosen.some((v) => quantities[v.id] > v.stock) ||
     chosenReturns.some((d) => returns[d.id_detalle] > availableReturn(d)) ||
@@ -77,13 +88,6 @@ export function ExchangeForm({
         quantities[Number(id)] > 0 &&
         !variants.some((v) => v.id === Number(id)),
     );
-  const noChange =
-    chosenReturns.length > 0 &&
-    chosen.length > 0 &&
-    chosenReturns.every(
-      (d) => quantities[d.id_variante] === returns[d.id_detalle],
-    ) &&
-    chosen.every((v) => chosenReturns.some((d) => d.id_variante === v.id));
   const filtered = variants.filter((v) =>
     `${v.dress.nombre} ${v.variant.color} ${v.variant.talla ?? ""} ${v.dress.ubicacion_almacen ?? ""}`
       .toLocaleLowerCase()
@@ -96,7 +100,6 @@ export function ExchangeForm({
     if (
       busy ||
       invalid ||
-      noChange ||
       !chosenReturns.length ||
       !total ||
       (range && end <= start)
@@ -136,9 +139,10 @@ export function ExchangeForm({
     >
       <form className="sale-form" onSubmit={(e) => void submit(e)}>
         <p className="exchange-intro">
-          Se registrará un pedido nuevo, vinculado a {orderNumber(source)}, para
-          devolver y entregar estas prendas. Cliente:{" "}
-          {source.cliente_celular ?? source.cliente.celular}.
+          La venta {orderNumber(source)} se cancelará y será reemplazada por un
+          pedido pendiente con las prendas conservadas y las nuevas. Se
+          registrarán las cantidades para devolver y entregar estas prendas.
+          Cliente: {source.cliente_celular ?? source.cliente.celular}.
         </p>
         <fieldset disabled={busy} className="space-y-3">
           <legend className="mb-3 font-bold">1. Devolver</legend>
@@ -152,24 +156,47 @@ export function ExchangeForm({
                   {availableReturn(d)} disponibles para devolver ·{" "}
                   {money(d.precio_unitario_aplicado)} por prenda
                 </small>
-                <input
-                  aria-label={`Devolver ${d.nombre_vestido ?? d.variante.vestido.nombre} ${d.color ?? d.variante.color}`}
-                  type="number"
-                  min="0"
-                  max={availableReturn(d)}
-                  step="1"
-                  value={returns[d.id_detalle] ?? 0}
-                  onChange={(e) =>
-                    setReturns((r) => ({
-                      ...r,
+              </label>
+              <div className="quantity-control">
+                <button
+                  type="button"
+                  disabled={!(returns[d.id_detalle] ?? 0)}
+                  aria-label={`Devolver una prenda menos de ${d.nombre_vestido ?? d.variante.vestido.nombre} ${d.color ?? d.variante.color}`}
+                  onClick={() =>
+                    setReturns((values) => ({
+                      ...values,
                       [d.id_detalle]: Math.max(
                         0,
-                        Math.floor(Number(e.target.value)) || 0,
+                        (values[d.id_detalle] ?? 0) - 1,
                       ),
                     }))
                   }
+                >
+                  <Minus size={16} aria-hidden="true" />
+                </button>
+                <input
+                  readOnly
+                  type="text"
+                  aria-label={`Cantidad a devolver de ${d.nombre_vestido ?? d.variante.vestido.nombre} ${d.color ?? d.variante.color}`}
+                  value={returns[d.id_detalle] ?? 0}
                 />
-              </label>
+                <button
+                  type="button"
+                  disabled={(returns[d.id_detalle] ?? 0) >= availableReturn(d)}
+                  aria-label={`Devolver una prenda más de ${d.nombre_vestido ?? d.variante.vestido.nombre} ${d.color ?? d.variante.color}`}
+                  onClick={() =>
+                    setReturns((values) => ({
+                      ...values,
+                      [d.id_detalle]: Math.min(
+                        availableReturn(d),
+                        (values[d.id_detalle] ?? 0) + 1,
+                      ),
+                    }))
+                  }
+                >
+                  <Plus size={16} aria-hidden="true" />
+                </button>
+              </div>
             </div>
           ))}
           {!available.length && (
@@ -205,14 +232,7 @@ export function ExchangeForm({
                     key={v.id}
                     className={`sale-product ${amount ? "selected" : ""}`}
                   >
-                    <label className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        aria-label={`Entregar ${v.dress.nombre} ${v.variant.color} ${v.variant.talla ?? ""}`}
-                        disabled={!v.stock}
-                        checked={amount > 0}
-                        onChange={() => quantity(v.id, amount ? 0 : 1)}
-                      />
+                    <div className="flex flex-1 items-start gap-3">
                       <span>
                         <strong>{v.dress.nombre}</strong>
                         <span className="block text-xs font-normal text-muted">
@@ -226,7 +246,7 @@ export function ExchangeForm({
                           {money(decimal(price(v)))} por prenda
                         </span>
                       </span>
-                    </label>
+                    </div>
                     <div className="quantity-control">
                       <button
                         type="button"
@@ -238,12 +258,9 @@ export function ExchangeForm({
                       </button>
                       <input
                         aria-label={`Cantidad a entregar ${v.dress.nombre} ${v.variant.color}`}
-                        type="number"
-                        min="0"
-                        max={v.stock}
-                        step="1"
+                        type="text"
+                        readOnly
                         value={amount}
-                        onChange={(e) => quantity(v.id, Number(e.target.value))}
                       />
                       <button
                         type="button"
@@ -298,11 +315,23 @@ export function ExchangeForm({
             Revisa las cantidades devueltas y el stock disponible.
           </p>
         )}
-        {noChange && (
-          <p role="alert" className="error">
-            Selecciona prendas diferentes para registrar el cambio.
+        <section
+          className="sale-summary"
+          aria-label="Total del pedido reemplazante"
+        >
+          <div>
+            <span>Prendas conservadas</span>
+            <strong>{money(decimal(retained))}</strong>
+          </div>
+          <div>
+            <span>Total del nuevo pedido</span>
+            <strong>{money(decimal(replacementTotal))}</strong>
+          </div>
+          <p className="text-xs text-muted">
+            Incluye los adicionales y el envío del pedido original. Confirma
+            después qué prendas fueron entregadas.
           </p>
-        )}
+        </section>
         {error && (
           <p role="alert" className="error">
             {error}
@@ -320,7 +349,6 @@ export function ExchangeForm({
               loading ||
               !!catalogError ||
               invalid ||
-              noChange ||
               !chosenReturns.length ||
               !total ||
               (range && !!end && end <= start)
