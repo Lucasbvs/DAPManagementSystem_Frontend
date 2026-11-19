@@ -6,6 +6,7 @@ export type SaleLine = {
   tipo: "Entrega" | "Devolucion";
   id_detalle_origen: number | null;
   precio_unitario_aplicado: string;
+  descuento_manual: string;
   nombre_vestido: string | null;
   color: string | null;
   talla: string | null;
@@ -81,6 +82,7 @@ export type SaleInput = {
     link_ubicacion: string | null;
   };
   detalles: { id_variante: number; cantidad: number }[];
+  importes_propietario?: { id_propietario: number; monto_prendas: string }[];
   adicional_delivery: string;
   departamento_destino: string | null;
   ciudad_provincia: string | null;

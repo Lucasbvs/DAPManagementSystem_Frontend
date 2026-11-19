@@ -20,6 +20,8 @@ import {
   differenceLabel,
   linesForOwner,
   matchesCustomerPhone,
+  saleStatus,
+  shippingCostLabel,
   whatsappUrl,
 } from "../services/salesRules";
 import {
@@ -35,9 +37,14 @@ import type { Owner } from "../types/inventory";
 
 function WhatsApp({ sale }: { sale: Sale }) {
   return sale.estado === "Cancelada" ? (
-    <span className="whatsapp-link disabled" aria-disabled="true">
+    <span
+      className="whatsapp-link disabled"
+      role="link"
+      aria-disabled="true"
+      aria-label={`WhatsApp ${orderNumber(sale)} (venta cancelada)`}
+      title="No disponible para ventas canceladas"
+    >
       <SalesIcon name="whatsapp" />
-      WhatsApp
     </span>
   ) : (
     <a
@@ -47,9 +54,9 @@ function WhatsApp({ sale }: { sale: Sale }) {
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
       aria-label={`WhatsApp ${orderNumber(sale)}`}
+      title={`WhatsApp ${orderNumber(sale)}`}
     >
       <SalesIcon name="whatsapp" />
-      WhatsApp
     </a>
   );
 }
@@ -428,6 +435,23 @@ export function SalesPage() {
           </div>
         </div>
         <div
+          className="sales-status-legend"
+          aria-label="Colores de los estados de venta"
+        >
+          <span className="sale-delivered">
+            <i aria-hidden="true" />
+            Entregadas
+          </span>
+          <span className="sale-pending">
+            <i aria-hidden="true" />
+            Pendientes
+          </span>
+          <span className="sale-cancelled">
+            <i aria-hidden="true" />
+            Canceladas
+          </span>
+        </div>
+        <div
           ref={salesScroll}
           className="sales-scroll"
           onScroll={(event) => {
@@ -435,13 +459,11 @@ export function SalesPage() {
             const { scrollTop, clientHeight } = event.currentTarget;
             const top = Math.max(0, scrollTop);
             const previous = summaryScroll.current;
-            // El inicio tiene prioridad, incluso si la navegación o el resumen están animándose.
             if (top <= 1) {
               setSummaryHidden(false);
               summaryScroll.current = { top, height: clientHeight };
               return;
             }
-            // La animación cambia la altura de la lista y puede ajustar su scroll.
             if (previous.height && previous.height !== clientHeight) {
               summaryScroll.current = { top, height: clientHeight };
               return;
@@ -462,11 +484,13 @@ export function SalesPage() {
             <>
               <table className="sales-table">
                 <colgroup>
-                  {[32, 78, 104, 116, 202, 64, 80, 100, 88, 84, 110].map(
-                    (w, i) => (
-                      <col key={i} style={{ width: w }} />
-                    ),
-                  )}
+                  {[4, 7, 10, 11, null, 6, 8, 10, 8, 8].map((w, i) => (
+                    <col
+                      key={i}
+                      style={w === null ? undefined : { width: `${w}%` }}
+                    />
+                  ))}
+                  <col className="sales-whatsapp-column" />
                 </colgroup>
                 <thead>
                   <tr>
@@ -498,10 +522,10 @@ export function SalesPage() {
                       "Entrega",
                       "Vestidos / unidades",
                       "Prendas",
-                      "Delivery +",
                       "Total / diferencia",
+                      "Delivery +",
+                      "Costo de envío",
                       "Neto",
-                      "Estado",
                       "WhatsApp",
                     ].map((h) => (
                       <th key={h}>{h}</th>
@@ -512,7 +536,8 @@ export function SalesPage() {
                   {visibleSales.map((s) => (
                     <tr
                       key={s.id_venta}
-                      className={`${selected.includes(s.id_venta) ? "selected" : ""} ${s.estado === "Cancelada" ? "sale-cancelled" : ""}`}
+                      className={`${saleStatus[s.estado].className} ${selected.includes(s.id_venta) ? "sale-picked" : ""}`}
+                      title={saleStatus[s.estado].label}
                       onClick={() => {
                         if (s.estado !== "Cancelada") toggle(s.id_venta);
                       }}
@@ -529,6 +554,10 @@ export function SalesPage() {
                       </td>
                       <th scope="row">
                         {orderNumber(s)}
+                        <span className="sr-only">
+                          {" "}
+                          · {saleStatus[s.estado].label}
+                        </span>
                         {s.tipo === "Cambio" && (
                           <small className="sale-kind">
                             Cambio
@@ -549,14 +578,14 @@ export function SalesPage() {
                         <LineList sale={s} owner={owner} />
                       </td>
                       <td>{s.total_prendas}</td>
-                      <td>{money(s.adicional_delivery)}</td>
                       <td>
                         {s.tipo === "Cambio" && !s.reemplazo_completo
                           ? differenceLabel(s.total_cobrado)
                           : money(s.total_cobrado)}
                       </td>
+                      <td>{money(s.adicional_delivery)}</td>
+                      <td>{shippingCostLabel(s)}</td>
                       <td>{money(s.monto_neto)}</td>
-                      <td>{s.estado}</td>
                       <td>
                         <WhatsApp sale={s} />
                       </td>
@@ -568,7 +597,7 @@ export function SalesPage() {
                 {visibleSales.map((s) => (
                   <article
                     key={s.id_venta}
-                    className={`mobile-card sale-mobile-card ${selected.includes(s.id_venta) ? "selected" : ""} ${s.estado === "Cancelada" ? "sale-cancelled" : ""}`}
+                    className={`mobile-card sale-mobile-card ${saleStatus[s.estado].className} ${selected.includes(s.id_venta) ? "sale-picked" : ""}`}
                   >
                     <button
                       className="sale-card-select"
@@ -589,7 +618,9 @@ export function SalesPage() {
                             </span>
                           )}
                         </strong>
-                        <span className="sale-status">{s.estado}</span>
+                        <span className="sale-status">
+                          {saleStatus[s.estado].label}
+                        </span>
                       </span>
                       <span className="sale-card-phone">
                         {s.cliente_celular ?? s.cliente.celular}
@@ -603,6 +634,11 @@ export function SalesPage() {
                         )}
                       </span>
                       <LineList sale={s} owner={owner} />
+                      {s.departamento_destino && s.costo_envio !== null && (
+                        <span className="sale-card-shipping">
+                          Costo de envío: {shippingCostLabel(s)}
+                        </span>
+                      )}
                     </button>
                     <footer className="sale-card-footer">
                       <div>
