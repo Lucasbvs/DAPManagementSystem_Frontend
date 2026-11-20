@@ -14,7 +14,7 @@ export function MainLayout({
 }: {
   children: ReactNode;
   onLogout: () => void;
-  page: "inventory" | "sales";
+  page: "inventory" | "sales" | "accounting";
 }) {
   const [navHidden, setNavHidden] = useState(false);
   const scrollPositions = useRef(
@@ -51,7 +51,9 @@ export function MainLayout({
   }
 
   return (
-    <div className="app-shell md:pl-60">
+    <div
+      className={`app-shell md:pl-60 ${page === "accounting" ? "accounting-shell" : ""}`}
+    >
       <aside className={`sidebar ${navHidden ? "mobile-nav-hidden" : ""}`}>
         <div className="hidden md:block">
           <div className="brand text-5xl">DAP</div>
@@ -77,17 +79,15 @@ export function MainLayout({
             <NavIcon name="inventory" />
             <span>Inventario</span>
           </a>
-          <button
-            disabled
-            title="Disponible en una próxima etapa"
-            aria-label="Contabilidad (próximamente)"
-            className="nav-item"
+          <a
+            href="#contabilidad"
+            aria-label="Contabilidad"
+            aria-current={page === "accounting" ? "page" : undefined}
+            className={`nav-item ${page === "accounting" ? "nav-active" : ""}`}
           >
             <NavIcon name="accounting" />
-            <span>
-              Contabilidad <small>Próximamente</small>
-            </span>
-          </button>
+            <span>Contabilidad</span>
+          </a>
         </nav>
         <div className="mt-auto hidden pt-8 md:block">
           <Button className="inline-flex items-center gap-2" onClick={onLogout}>
@@ -97,7 +97,13 @@ export function MainLayout({
         </div>
       </aside>
       <main
-        id={page === "sales" ? "ventas" : "inventario"}
+        id={
+          page === "sales"
+            ? "ventas"
+            : page === "accounting"
+              ? "contabilidad"
+              : "inventario"
+        }
         className="app-main"
         onScrollCapture={handleScroll}
       >

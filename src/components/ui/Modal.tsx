@@ -7,12 +7,14 @@ export function Modal({
   onClose,
   busy = false,
   compact = false,
+  className = "",
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
   compact?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const outsideStarted = useRef(false);
@@ -27,7 +29,9 @@ export function Modal({
   }, []);
   return (
     <dialog
-      className={compact ? "result-modal" : undefined}
+      className={
+        `${compact ? "result-modal" : ""} ${className}`.trim() || undefined
+      }
       ref={ref}
       onPointerDown={(e) => {
         outsideStarted.current =
