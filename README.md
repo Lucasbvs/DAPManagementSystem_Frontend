@@ -19,7 +19,7 @@ Este repositorio contiene exclusivamente el frontend. La API se mantiene en `DAP
 - Navegación inferior en celular y menú lateral en escritorio.
 - Actualización automática del inventario y sus estadísticas entre dispositivos.
 
-Los módulos activos son Inventario y Ventas. Contabilidad queda prevista para una siguiente etapa.
+Los módulos activos son Inventario, Ventas y Contabilidad.
 
 ## Tecnologías
 
@@ -76,7 +76,7 @@ La aplicación utiliza una organización por funcionalidades.
 | Directorio | Responsabilidad |
 | --- | --- |
 | `src/app/` | Composición principal y estado de autenticación. |
-| `src/pages/` | Pantallas de acceso, inventario y ventas. |
+| `src/pages/` | Pantallas de acceso, inventario, ventas y contabilidad. |
 | `src/components/forms/` | Formularios de vestidos y ventas. |
 | `src/components/ui/` | Botones, iconos y modales reutilizables. |
 | `src/layouts/` | Distribución general y navegación adaptable. |
@@ -135,3 +135,14 @@ El formulario incluye celular, nombre, dirección y enlace de ubicación. Para e
 **Imprimir ventas** descarga directamente un PDF con los pedidos seleccionados. Cada pedido incluye su número actual, celular, dirección, prendas, color/talla, cantidad, precio aplicado, subtotal, delivery adicional, envío y total. Se puede abrir el archivo y usar la impresión del visor PDF del dispositivo.
 
 Las ventas se sincronizan mediante el mismo flujo SSE autenticado del inventario, con respaldo cada 15 segundos. El servidor protege registros repetidos, cambios concurrentes y ventas sin existencias.
+
+## Contabilidad
+
+Entrar desde **Contabilidad** o `#contabilidad`. El mes inicial corresponde a Bolivia y se puede cambiar con el selector. Los resúmenes muestran ingresos, costos y gastos, y resultado por propietario; los movimientos se muestran en tabla en escritorio y tarjetas en móvil.
+
+La API calcula los ingresos únicamente a partir de ventas entregadas (`Realizada`). Las pendientes y canceladas no suman. Se usan los propietarios históricos de las prendas y sus descuentos, incluyendo entregas parciales; un reemplazo completo cuenta al entregarse y no duplica la venta original. El período corresponde a la fecha de registro de la venta en Bolivia, ya que no existe una fecha de entrega independiente.
+
+Los ingresos por propietario corresponden a prendas, sin adicionales de delivery ni envío. El costo de delivery tampoco se reparte automáticamente entre propietarios; los costos y gastos registrados se descuentan del contribuyente elegido. Se conserva el cierre diario existente que convierte las pendientes de días anteriores en entregadas.
+
+**Registrar gasto** permite indicar fecha, concepto, contribuyente, tipo (costo de mercadería o gasto operativo) e importe positivo con hasta dos decimales. **Exportar reporte** descarga un CSV del mes con resúmenes, totales y movimientos. La pantalla reutiliza la sincronización SSE y el respaldo periódico de los demás módulos.
+

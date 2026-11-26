@@ -22,6 +22,7 @@ const {
   availableReturn,
   linesForOwner,
   matchesCustomerPhone,
+  shippingCostLabel,
   whatsappMessage,
   whatsappUrl,
 } = await import(data(rules));
@@ -151,4 +152,23 @@ test("búsqueda por celular parcial, formato y teléfono histórico del pedido",
   assert.equal(matchesCustomerPhone(order, "  "), true);
   assert.equal(matchesCustomerPhone(order, "cliente"), false);
   assert.equal(matchesCustomerPhone(order, "+"), false);
+});
+
+test("costo de envío distingue un costo registrado de un envío sin precio", () => {
+  assert.equal(
+    shippingCostLabel({ departamento_destino: null, costo_envio: null }),
+    "—",
+  );
+  assert.equal(
+    shippingCostLabel({ departamento_destino: "La_Paz", costo_envio: null }),
+    "—",
+  );
+  assert.match(
+    shippingCostLabel({ departamento_destino: "La_Paz", costo_envio: "0" }),
+    /0/,
+  );
+  assert.match(
+    shippingCostLabel({ departamento_destino: "La_Paz", costo_envio: "25.50" }),
+    /25[,.]50/,
+  );
 });

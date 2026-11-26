@@ -3,15 +3,21 @@ import { tokenStore } from "../services/token";
 import { LoginPage } from "../pages/LoginPage";
 import { InventoryPage } from "../pages/InventoryPage";
 import { SalesPage } from "../pages/SalesPage";
+import { AccountingPage } from "../pages/AccountingPage";
 import { MainLayout } from "../layouts/MainLayout";
+const pageFromHash = () =>
+  location.hash === "#contabilidad"
+    ? "accounting"
+    : location.hash === "#ventas"
+      ? "sales"
+      : "inventory";
 export function App() {
-  const [page, setPage] = useState<"inventory" | "sales">(() =>
-    location.hash === "#ventas" ? "sales" : "inventory",
+  const [page, setPage] = useState<"inventory" | "sales" | "accounting">(
+    pageFromHash,
   );
 
   useEffect(() => {
-    const change = () =>
-      setPage(location.hash === "#ventas" ? "sales" : "inventory");
+    const change = () => setPage(pageFromHash());
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
   }, []);
@@ -44,7 +50,13 @@ export function App() {
         setExpired(false);
       }}
     >
-      {page === "sales" ? <SalesPage /> : <InventoryPage />}
+      {page === "sales" ? (
+        <SalesPage />
+      ) : page === "accounting" ? (
+        <AccountingPage />
+      ) : (
+        <InventoryPage />
+      )}
     </MainLayout>
   );
 }

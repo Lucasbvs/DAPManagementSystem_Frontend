@@ -3,6 +3,10 @@ import { useState } from "react";
 import { useInventory } from "../hooks/useInventory";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { Button } from "../components/ui/Button";
+import { CollapsibleSummary } from "../components/ui/CollapsibleSummary";
+import { DataTable } from "../components/ui/DataTable";
+import { OwnerFilter } from "../components/ui/OwnerFilter";
+import { useScrollSummary } from "../hooks/useScrollSummary";
 import { Modal } from "../components/ui/Modal";
 import {
   ActionResultModal,
@@ -41,7 +45,8 @@ const money = (v: string | null) =>
       }).format(Number(v));
 export function InventoryPage() {
   const { dresses, owners, loading, error, reload } = useInventory();
-  const [summaryHidden, setSummaryHidden] = useState(false);
+  const { summaryHidden, resetSummary, scrollRef, onScroll } =
+    useScrollSummary();
   const [ownerFilter, setOwnerFilter] = useState("");
   const [query, setQuery] = useState(""),
     [selected, setSelected] = useState<number[]>([]),
@@ -105,27 +110,25 @@ export function InventoryPage() {
   }
   return (
     <div className="inventory-page" aria-label="Inventario">
-      <header
-        className={`inventory-mobile-heading md:hidden ${summaryHidden ? "inventory-summary-hidden" : ""}`}
-        aria-hidden={summaryHidden}
+      <CollapsibleSummary
+        className="inventory-mobile-heading md:hidden"
+        hidden={summaryHidden}
       >
-        <div className="inventory-summary-content">
-          <h1>Inventario</h1>
-          <div className="inventory-mobile-totals">
-            <p>
-              {loading
-                ? "Cargando…"
-                : `${ownerDresses.length} modelos · ${ownerDresses.reduce((total, item) => total + item.stock_total, 0)} prendas`}
-            </p>
-            <span
-              className="inventory-mobile-low"
-              title="Modelos con 2 unidades o menos"
-            >
-              Stock bajo: {loading ? "…" : low.length}
-            </span>
-          </div>
+        <h1>Inventario</h1>
+        <div className="inventory-mobile-totals">
+          <p>
+            {loading
+              ? "Cargando…"
+              : `${ownerDresses.length} modelos · ${ownerDresses.reduce((total, item) => total + item.stock_total, 0)} prendas`}
+          </p>
+          <span
+            className="inventory-mobile-low"
+            title="Modelos con 2 unidades o menos"
+          >
+            Stock bajo: {loading ? "…" : low.length}
+          </span>
         </div>
-      </header>
+      </CollapsibleSummary>
       <section aria-label="Resumen del inventario" className="inventory-stats">
         {[
           {
@@ -190,37 +193,26 @@ export function InventoryPage() {
               onChange={(e) => {
                 setQuery(e.target.value);
                 setSelected([]);
-                setSummaryHidden(false);
+                resetSummary();
               }}
             />
           </label>
-          <label className="inventory-owner-filter">
-            <span className="sr-only">Filtrar por dueño de la prenda</span>
-            <select
-              aria-label="Filtrar por dueño de la prenda"
-              value={ownerFilter}
-              onChange={(e) => {
-                setOwnerFilter(e.target.value);
-                setSelected([]);
-                setSummaryHidden(false);
-              }}
-            >
-              <option value="">Todos los dueños</option>
-              {owners.map((owner) => (
-                <option key={owner.id_propietario} value={owner.id_propietario}>
-                  {owner.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
+          <OwnerFilter
+            className="inventory-owner-filter"
+            owners={owners}
+            label="Filtrar por dueño de la prenda"
+            value={ownerFilter}
+            onChange={(value) => {
+              setOwnerFilter(value);
+              setSelected([]);
+              resetSummary();
+            }}
+          />
         </div>
         <div
           className="inventory-scroll"
-          onScroll={(event) => {
-            const position = event.currentTarget.scrollTop;
-            if (position > 120) setSummaryHidden(true);
-            else if (position <= 8) setSummaryHidden(false);
-          }}
+          ref={scrollRef}
+          onScroll={onScroll}
           tabIndex={0}
           aria-label="Vestidos disponibles"
         >
@@ -231,7 +223,7 @@ export function InventoryPage() {
           ) : (
             <>
               <div className="hidden md:block">
-                <table className="inventory-table">
+                <DataTable className="inventory-table">
                   <colgroup>
                     {[4, 5, 12, 18, 8, 13, 7, 9, 8, 8, 8].map(
                       (width, index) => (
@@ -302,7 +294,7 @@ export function InventoryPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </DataTable>
               </div>
               <div className="inventory-mobile-cards md:hidden">
                 {filtered.map((d) => (

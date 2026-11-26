@@ -1,0 +1,383 @@
+/* La pantalla conserva los controles; solo se desplazan los movimientos. */
+.accounting-page {
+  --summary-gap: 16px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+.accounting-page > .error {
+  flex-shrink: 0;
+}
+.accounting-summary {
+  --summary-gap: inherit;
+}
+.accounting-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.accounting-stat {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+}
+.accounting-stat p {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+.accounting-stat strong {
+  font-size: clamp(22px, 2.2vw, 28px);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.accounting-stat small {
+  font-size: 11px;
+  color: var(--color-primary);
+}
+.accounting-result {
+  background: var(--color-mint);
+}
+.accounting-movements {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.accounting-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 12px;
+  flex-shrink: 0;
+}
+.accounting-filters label {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--color-primary);
+}
+.accounting-filters input,
+.accounting-filters select {
+  min-width: 0;
+  margin-top: 5px;
+  border-color: var(--color-soft);
+  font-size: 14px;
+  color: var(--color-primary);
+}
+.accounting-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.accounting-list-heading h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.accounting-list-heading > span {
+  font-size: 12px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.accounting-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
+}
+.accounting-table {
+  min-width: 640px;
+  font-size: 13px;
+}
+.accounting-date-column {
+  width: 90px;
+}
+.accounting-type-column {
+  width: 95px;
+}
+.accounting-amount-column {
+  width: 140px;
+}
+.accounting-owner-column {
+  width: 20%;
+}
+.accounting-table time,
+.accounting-amount {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.accounting-table .accounting-amount {
+  text-align: right;
+  font-weight: 700;
+}
+.accounting-badge {
+  display: inline-flex;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: var(--color-canvas);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.accounting-income {
+  background: var(--color-mint);
+  color: var(--color-primary);
+}
+.accounting-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  flex-shrink: 0;
+}
+.accounting-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 8px;
+}
+.accounting-actions svg {
+  flex-shrink: 0;
+}
+.accounting-note,
+.accounting-empty {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+.accounting-note {
+  flex-shrink: 0;
+}
+.accounting-empty {
+  padding: 32px 12px;
+  text-align: center;
+}
+.accounting-mobile-movements {
+  display: none;
+}
+.accounting-modal {
+  width: min(640px, calc(100vw - 24px));
+  padding: 28px;
+}
+.accounting-modal h2 {
+  font-size: 24px;
+}
+.expense-form,
+.expense-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.expense-intro {
+  font-size: 14px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+.expense-fields {
+  min-width: 0;
+}
+.expense-fields label {
+  font-size: 12px;
+}
+.expense-fields input,
+.expense-fields select {
+  background: var(--color-canvas);
+  font-size: 14px;
+}
+.expense-mobile-title {
+  display: none;
+}
+.expense-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.expense-actions .btn:first-child {
+  width: 160px;
+}
+.expense-actions .btn:last-child {
+  width: 240px;
+}
+@media (max-width: 1023px) {
+  .accounting-stat {
+    padding: 12px;
+  }
+  .accounting-movements {
+    padding: 14px;
+  }
+  .accounting-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .accounting-page {
+    --summary-gap: 10px;
+    gap: 10px;
+  }
+  .accounting-stats {
+    gap: 6px;
+  }
+  .accounting-stat {
+    padding: 10px 8px;
+    gap: 4px;
+    border-color: #c8dedb;
+  }
+  .accounting-stat p {
+    font-size: 11px;
+  }
+  .accounting-stat strong {
+    font-size: clamp(14px, 4vw, 20px);
+    line-height: 1.3;
+  }
+  .accounting-stat small {
+    display: none;
+  }
+  .accounting-movements {
+    padding: 0;
+    gap: 10px;
+    background: transparent;
+    border-radius: 0;
+  }
+  .accounting-filters {
+    gap: 8px;
+  }
+  .accounting-filters input,
+  .accounting-filters select {
+    min-height: 40px;
+    padding: 7px 8px;
+    font-size: 13px;
+  }
+  .accounting-list-heading h2 {
+    font-size: 16px;
+  }
+  .accounting-list-heading > span {
+    font-size: 11px;
+  }
+  .accounting-scroll {
+    scrollbar-gutter: auto;
+  }
+  .accounting-table {
+    display: none;
+  }
+  .accounting-mobile-movements {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 2px;
+  }
+  .accounting-movement {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+  .accounting-movement > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .accounting-movement strong {
+    font-size: 17px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .accounting-movement h3 {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .accounting-movement-footer {
+    border-top: 1px solid var(--color-line);
+    padding-top: 8px;
+    font-size: 12px;
+    color: var(--color-muted);
+  }
+  .accounting-movement-footer span {
+    text-align: right;
+  }
+  .accounting-note {
+    font-size: 11px;
+  }
+  .accounting-actions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .accounting-actions .btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  .accounting-modal {
+    padding: 20px;
+  }
+  .accounting-modal h2 {
+    font-size: 26px;
+  }
+  .expense-fields {
+    background: white;
+    padding: 16px;
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    gap: 12px;
+  }
+  .expense-fields label {
+    font-size: 13px;
+  }
+  .expense-fields input,
+  .expense-fields select {
+    min-height: 48px;
+  }
+  .expense-mobile-title {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    float: left;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .expense-actions {
+    flex-direction: column-reverse;
+    gap: 20px;
+  }
+  .expense-actions .btn:first-child,
+  .expense-actions .btn:last-child {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+@media (max-height: 600px) {
+  .accounting-page {
+    --summary-gap: 8px;
+    gap: 8px;
+  }
+  .accounting-stat {
+    padding: 8px;
+  }
+  .accounting-stat small,
+  .accounting-note {
+    display: none;
+  }
+  .accounting-movements {
+    gap: 8px;
+  }
+  .accounting-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

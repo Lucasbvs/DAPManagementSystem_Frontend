@@ -5,6 +5,7 @@ import { Button } from "../ui/Button";
 import { useInventory } from "../../hooks/useInventory";
 import { salesApi } from "../../services/sales.api";
 import { errorMessage } from "../../services/api";
+import { lineAmountCents } from "../../services/salesPricing";
 import {
   availableReturn,
   differenceLabel,
@@ -63,7 +64,13 @@ export function ExchangeForm({
           : null) ?? v.dress.precio_unitario,
     );
   const returned = chosenReturns.reduce(
-    (n, d) => n + cents(d.precio_unitario_aplicado) * returns[d.id_detalle],
+    (n, d) =>
+      n +
+      lineAmountCents(
+        d,
+        returns[d.id_detalle],
+        d.devoluciones.reduce((sum, item) => sum + item.cantidad, 0),
+      ),
     0,
   );
   const delivered = chosen.reduce((n, v) => n + price(v) * quantities[v.id], 0),
@@ -71,8 +78,12 @@ export function ExchangeForm({
   const retained = available.reduce(
     (sum, line) =>
       sum +
-      cents(line.precio_unitario_aplicado) *
-        (availableReturn(line) - (returns[line.id_detalle] ?? 0)),
+      lineAmountCents(
+        line,
+        availableReturn(line) - (returns[line.id_detalle] ?? 0),
+        line.devoluciones.reduce((n, item) => n + item.cantidad, 0) +
+          (returns[line.id_detalle] ?? 0),
+      ),
     0,
   );
   const replacementTotal =
@@ -154,7 +165,20 @@ export function ExchangeForm({
                 {d.talla ? ` / ${d.talla}` : ""}
                 <small>
                   {availableReturn(d)} disponibles para devolver ·{" "}
-                  {money(d.precio_unitario_aplicado)} por prenda
+                  {Number(d.descuento_manual) > 0
+                    ? `${money(
+                        decimal(
+                          lineAmountCents(
+                            d,
+                            availableReturn(d),
+                            d.devoluciones.reduce(
+                              (n, item) => n + item.cantidad,
+                              0,
+                            ),
+                          ),
+                        ),
+                      )} en total, con rebaja`
+                    : `${money(d.precio_unitario_aplicado)} por prenda`}
                 </small>
               </label>
               <div className="quantity-control">

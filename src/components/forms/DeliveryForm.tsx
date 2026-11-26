@@ -4,6 +4,7 @@ import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
 import { salesApi } from "../../services/sales.api";
 import { errorMessage } from "../../services/api";
+import { lineAmountCents } from "../../services/salesPricing";
 import {
   money,
   cents,
@@ -39,10 +40,7 @@ export function DeliveryForm({
     );
     const cancelled = lines.reduce((n, line) => n + line.cantidad, 0) - total;
     const subtotal = lines.reduce(
-      (n, line) =>
-        n +
-        cents(line.precio_unitario_aplicado) *
-          (quantities[line.id_detalle] ?? 0),
+      (n, line) => n + lineAmountCents(line, quantities[line.id_detalle] ?? 0),
       0,
     );
     const amount = total
@@ -166,7 +164,9 @@ export function DeliveryForm({
                         {name}
                         <small className="block">
                           {line.cantidad} solicitadas ·{" "}
-                          {money(line.precio_unitario_aplicado)} por unidad
+                          {Number(line.descuento_manual) > 0
+                            ? `${money(decimal(lineAmountCents(line, amount)))} por las unidades marcadas, con rebaja`
+                            : `${money(line.precio_unitario_aplicado)} por unidad`}
                         </small>
                       </span>
                     </label>

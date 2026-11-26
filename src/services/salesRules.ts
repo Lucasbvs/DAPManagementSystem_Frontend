@@ -1,4 +1,16 @@
 import { money, orderNumber, type Sale, type SaleLine } from "../types/sales";
+export const saleStatus = {
+  Pendiente: { className: "sale-pending", label: "Pendiente" },
+  Realizada: { className: "sale-delivered", label: "Entregada" },
+  Cancelada: { className: "sale-cancelled", label: "Cancelada" },
+} as const;
+export function shippingCostLabel(
+  sale: Pick<Sale, "departamento_destino" | "costo_envio">,
+) {
+  return sale.departamento_destino && sale.costo_envio !== null
+    ? money(sale.costo_envio)
+    : "—";
+}
 export function matchesCustomerPhone(sale: Sale, query: string) {
   if (!query.trim()) return true;
   const normalize = (value: string) => value.replace(/[\s()+-]/g, "");

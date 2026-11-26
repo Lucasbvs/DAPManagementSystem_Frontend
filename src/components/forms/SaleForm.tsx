@@ -1,4 +1,4 @@
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Pencil, Check, RotateCcw } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
@@ -14,7 +14,15 @@ import {
   type SaleInput,
 } from "../../types/sales";
 import { registrationKey } from "../../services/salesRules";
+import { summarizeOwners, validOwnerAmount } from "../../services/salesPricing";
 import { DeliverySchedule } from "./DeliverySchedule";
+const summaryMoney = (value: string | number) =>
+  new Intl.NumberFormat("es-BO", {
+    style: "currency",
+    currency: "BOB",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(value));
 const departments = [
   "La_Paz",
   "Cochabamba",
@@ -45,6 +53,33 @@ export function SaleForm({
       sale?.detalles.map((d) => [d.id_variante, d.cantidad]) ?? [],
     ),
   );
+  const [ownerAmounts, setOwnerAmounts] = useState<Record<number, string>>(
+    () => {
+      const groups = summarizeOwners(
+        (sale?.detalles ?? [])
+          .filter((line) => line.tipo === "Entrega")
+          .map((line) => ({
+            ownerId:
+              line.id_propietario_venta ?? line.variante.vestido.id_propietario,
+            ownerName:
+              line.propietario_nombre ??
+              line.variante.vestido.propietario.nombre,
+            quantity: line.cantidad,
+            unitCents: cents(line.precio_unitario_aplicado),
+            discountCents: cents(line.descuento_manual ?? "0"),
+          })),
+      );
+      return Object.fromEntries(
+        groups
+          .filter((group) => group.discountCents > 0)
+          .map((group) => [
+            group.ownerId,
+            String((group.baseCents - group.discountCents) / 100),
+          ]),
+      );
+    },
+  );
+  const [editingOwner, setEditingOwner] = useState<number | null>(null);
   const [query, setQuery] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -95,7 +130,32 @@ export function SaleForm({
           : null) ?? v.dress.precio_unitario,
     );
   };
-  const subtotal = chosen.reduce((n, v) => n + price(v) * quantities[v.id], 0),
+  const ownerGroups = summarizeOwners(
+    chosen.map((v) => {
+      const old = sale?.detalles.find((line) => line.id_variante === v.id);
+      return {
+        ownerId: old?.id_propietario_venta ?? v.dress.id_propietario,
+        ownerName: old?.propietario_nombre ?? v.dress.propietario.nombre,
+        quantity: quantities[v.id],
+        unitCents: price(v),
+      };
+    }),
+  );
+  const invalidOwnerAmount = ownerGroups.some(
+    (group) =>
+      ownerAmounts[group.ownerId] !== undefined &&
+      !validOwnerAmount(ownerAmounts[group.ownerId], group.baseCents),
+  );
+  const ownerAmount = (group: (typeof ownerGroups)[number]) => {
+    const value = ownerAmounts[group.ownerId];
+    return value !== undefined && validOwnerAmount(value, group.baseCents)
+      ? cents(value)
+      : group.baseCents;
+  };
+  const subtotal = ownerGroups.reduce(
+      (sum, group) => sum + ownerAmount(group),
+      0,
+    ),
     net = subtotal - cents(sale?.costo_delivery ?? "10");
   const charged =
     subtotal + cents(additional) + (paidShipping ? cents(shippingCost) : 0);
@@ -112,11 +172,20 @@ export function SaleForm({
       .includes(query.trim().toLocaleLowerCase()),
   );
   function quantity(id: number, value: number) {
+    setOwnerAmounts({});
+    setEditingOwner(null);
     setQuantities((q) => ({ ...q, [id]: Math.max(0, Math.floor(value) || 0) }));
   }
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (busy || !total || unavailable || (range && end <= start)) return;
+    if (
+      busy ||
+      !total ||
+      unavailable ||
+      invalidOwnerAmount ||
+      (range && end <= start)
+    )
+      return;
     if (shipping && !customer.nombre.trim()) {
       setError(
         "El nombre del cliente es obligatorio para envíos a otro departamento o ciudad",
@@ -140,6 +209,12 @@ export function SaleForm({
         id_variante: v.id,
         cantidad: quantities[v.id],
       })),
+      importes_propietario: ownerGroups
+        .filter((group) => ownerAmounts[group.ownerId] !== undefined)
+        .map((group) => ({
+          id_propietario: group.ownerId,
+          monto_prendas: ownerAmounts[group.ownerId],
+        })),
       adicional_delivery: additional || "0",
       departamento_destino: shipping ? department : null,
       ciudad_provincia: shipping ? city : null,
@@ -396,29 +471,123 @@ export function SaleForm({
           />
         </fieldset>
         <section className="sale-summary" aria-label="Resumen de la venta">
-          <div>
-            <span>Prendas ({total})</span>
-            <strong>{money(decimal(subtotal))}</strong>
-          </div>
+          {!ownerGroups.length && (
+            <div>
+              <span>Prendas (0)</span>
+              <strong>{summaryMoney(0)}</strong>
+            </div>
+          )}
+          {ownerGroups.map((group) => {
+            const value = ownerAmounts[group.ownerId];
+            const invalid =
+              value !== undefined && !validOwnerAmount(value, group.baseCents);
+            const editing = editingOwner === group.ownerId;
+            return (
+              <div className="sale-owner-row" key={group.ownerId}>
+                <span>
+                  Prendas ({group.quantity}) · {group.ownerName}
+                  {ownerAmount(group) < group.baseCents && (
+                    <small className="sale-owner-note">
+                      Tarifa: {summaryMoney(decimal(group.baseCents))} · Rebaja:{" "}
+                      {summaryMoney(
+                        decimal(group.baseCents - ownerAmount(group)),
+                      )}
+                    </small>
+                  )}
+                </span>
+                <div className="sale-owner-amount">
+                  {editing ? (
+                    <input
+                      autoFocus
+                      aria-label={`Importe de prendas de ${group.ownerName}`}
+                      aria-invalid={invalid}
+                      aria-describedby={
+                        invalid ? `owner-error-${group.ownerId}` : undefined
+                      }
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      max={Math.floor(group.baseCents / 100)}
+                      step="1"
+                      required
+                      value={value ?? String(Math.floor(group.baseCents / 100))}
+                      disabled={busy}
+                      onChange={(event) =>
+                        setOwnerAmounts((current) => ({
+                          ...current,
+                          [group.ownerId]: event.target.value,
+                        }))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          if (!invalid) setEditingOwner(null);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <strong>{summaryMoney(decimal(ownerAmount(group)))}</strong>
+                  )}
+                  <button
+                    type="button"
+                    className="sale-price-button"
+                    disabled={busy || (editing && invalid)}
+                    aria-label={`${editing ? "Aplicar" : "Editar"} importe de ${group.ownerName}`}
+                    title={`${editing ? "Aplicar" : "Editar"} importe de ${group.ownerName}`}
+                    onClick={() => {
+                      if (!editing)
+                        setOwnerAmounts((current) => ({
+                          ...current,
+                          [group.ownerId]:
+                            current[group.ownerId] ??
+                            String(Math.floor(group.baseCents / 100)),
+                        }));
+                      setEditingOwner(editing ? null : group.ownerId);
+                    }}
+                  >
+                    {editing ? (
+                      <Check size={18} aria-hidden="true" />
+                    ) : (
+                      <Pencil size={18} aria-hidden="true" />
+                    )}
+                  </button>
+                  {value !== undefined && (
+                    <button
+                      type="button"
+                      className="sale-price-button"
+                      disabled={busy}
+                      aria-label={`Restablecer tarifa de ${group.ownerName}`}
+                      title="Restablecer tarifa"
+                      onClick={() => {
+                        setOwnerAmounts((current) => {
+                          const next = { ...current };
+                          delete next[group.ownerId];
+                          return next;
+                        });
+                        setEditingOwner(null);
+                      }}
+                    >
+                      <RotateCcw size={17} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
           <div>
             <span>Delivery adicional</span>
-            <strong>{money(additional)}</strong>
+            <strong>{summaryMoney(additional)}</strong>
           </div>
           {paidShipping && (
             <div>
               <span>Envío departamental</span>
-              <strong>{money(shippingCost)}</strong>
+              <strong>{summaryMoney(shippingCost)}</strong>
             </div>
           )}
           <div className="sale-total">
             <span>Total a cobrar</span>
-            <strong>{money(decimal(charged))}</strong>
+            <strong>{summaryMoney(decimal(charged))}</strong>
           </div>
-          <p className="text-xs text-muted">
-            Neto de tienda: {money(decimal(net))} · se descuentan Bs{" "}
-            {Number(sale?.costo_delivery ?? 10).toFixed(2)} de delivery fijo.
-            Los adicionales y el envío no forman parte del neto.
-          </p>
         </section>
         {unavailable && (
           <p role="alert" className="error">
@@ -444,6 +613,7 @@ export function SaleForm({
               !!catalogError ||
               !total ||
               unavailable ||
+              invalidOwnerAmount ||
               (range && !!end && end <= start)
             }
           >

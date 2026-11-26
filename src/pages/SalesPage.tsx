@@ -2,6 +2,10 @@ import { CheckCheck, Search, X } from "lucide-react";
 import { DeliveryForm } from "../components/forms/DeliveryForm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/Button";
+import { CollapsibleSummary } from "../components/ui/CollapsibleSummary";
+import { DataTable } from "../components/ui/DataTable";
+import { OwnerFilter } from "../components/ui/OwnerFilter";
+import { useScrollSummary } from "../hooks/useScrollSummary";
 import { Modal } from "../components/ui/Modal";
 import {
   ActionResultModal,
@@ -20,6 +24,8 @@ import {
   differenceLabel,
   linesForOwner,
   matchesCustomerPhone,
+  saleStatus,
+  shippingCostLabel,
   whatsappUrl,
 } from "../services/salesRules";
 import {
@@ -35,9 +41,14 @@ import type { Owner } from "../types/inventory";
 
 function WhatsApp({ sale }: { sale: Sale }) {
   return sale.estado === "Cancelada" ? (
-    <span className="whatsapp-link disabled" aria-disabled="true">
+    <span
+      className="whatsapp-link disabled"
+      role="link"
+      aria-disabled="true"
+      aria-label={`WhatsApp ${orderNumber(sale)} (venta cancelada)`}
+      title="No disponible para ventas canceladas"
+    >
       <SalesIcon name="whatsapp" />
-      WhatsApp
     </span>
   ) : (
     <a
@@ -47,9 +58,9 @@ function WhatsApp({ sale }: { sale: Sale }) {
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
       aria-label={`WhatsApp ${orderNumber(sale)}`}
+      title={`WhatsApp ${orderNumber(sale)}`}
     >
       <SalesIcon name="whatsapp" />
-      WhatsApp
     </a>
   );
 }
@@ -89,9 +100,8 @@ export function SalesPage() {
     [busy, setBusy] = useState(false),
     [actionError, setActionError] = useState(""),
     [result, setResult] = useState<ActionResult | null>(null);
-  const [summaryHidden, setSummaryHidden] = useState(false);
-  const salesScroll = useRef<HTMLDivElement>(null);
-  const summaryScroll = useRef({ top: 0, height: 0 });
+  const { summaryHidden, resetSummary, scrollRef, onScroll } =
+    useScrollSummary();
   const revision = useRef(0),
     alive = useRef(false);
   const reload = useCallback(async () => {
@@ -121,8 +131,7 @@ export function SalesPage() {
   useEffect(() => {
     alive.current = true;
     setLoading(true);
-    setSummaryHidden(false);
-    summaryScroll.current = { top: 0, height: 0 };
+    resetSummary();
     setSales([]);
     setSelected([]);
     void reload();
@@ -146,7 +155,7 @@ export function SalesPage() {
       window.removeEventListener("focus", refresh);
       window.removeEventListener("online", refresh);
     };
-  }, [reload]);
+  }, [reload, resetSummary]);
   const visibleSales = sales.filter((sale) =>
     matchesCustomerPhone(sale, phoneQuery),
   );
@@ -254,67 +263,63 @@ export function SalesPage() {
   }
   return (
     <div className="sales-page">
-      <div
-        className={`sales-mobile-overview md:hidden ${summaryHidden ? "sales-overview-hidden" : ""}`}
-        aria-hidden={summaryHidden}
+      <CollapsibleSummary
+        className="sales-mobile-overview md:hidden"
+        hidden={summaryHidden}
       >
-        <div className="sales-mobile-overview-content">
-          <header className="sales-mobile-title">
-            <h1>Ventas</h1>
-            <label>
-              <span className="sr-only">Fecha de ventas</span>
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(event) => {
-                  if (event.target.value) {
-                    setDate(event.target.value);
-                    setActionError("");
-                  }
-                }}
-              />
-            </label>
-          </header>
-          <section
-            className="panel sales-mobile-summary"
-            aria-label="Resumen de ventas de la fecha seleccionada"
-          >
-            <div className="sales-mobile-net">
-              <span>
-                {owner ? "Venta neta filtrada del día" : "Venta neta del día"}
-              </span>
-              <strong>
-                {loading ? "…" : money(decimal(sum("monto_neto")))}
-              </strong>
+        <header className="sales-mobile-title">
+          <h1>Ventas</h1>
+          <label>
+            <span className="sr-only">Fecha de ventas</span>
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(event) => {
+                if (event.target.value) {
+                  setDate(event.target.value);
+                  setActionError("");
+                }
+              }}
+            />
+          </label>
+        </header>
+        <section
+          className="panel sales-mobile-summary"
+          aria-label="Resumen de ventas de la fecha seleccionada"
+        >
+          <div className="sales-mobile-net">
+            <span>
+              {owner ? "Venta neta filtrada del día" : "Venta neta del día"}
+            </span>
+            <strong>{loading ? "…" : money(decimal(sum("monto_neto")))}</strong>
+          </div>
+          <dl>
+            <div>
+              <dt>Cobrado</dt>
+              <dd>{loading ? "…" : money(decimal(sum("total_cobrado")))}</dd>
             </div>
-            <dl>
+            <div>
+              <dt>Adicional de delivery</dt>
+              <dd>
+                {loading ? "…" : money(decimal(sum("adicional_delivery")))}
+              </dd>
+            </div>
+            <div>
+              <dt>Delivery descontado</dt>
+              <dd>
+                {loading ? "…" : `− ${money(decimal(sum("costo_delivery")))}`}
+              </dd>
+            </div>
+            {sum("costo_envio") > 0 && (
               <div>
-                <dt>Cobrado</dt>
-                <dd>{loading ? "…" : money(decimal(sum("total_cobrado")))}</dd>
+                <dt>Envíos</dt>
+                <dd>{money(decimal(sum("costo_envio")))}</dd>
               </div>
-              <div>
-                <dt>Adicional de delivery</dt>
-                <dd>
-                  {loading ? "…" : money(decimal(sum("adicional_delivery")))}
-                </dd>
-              </div>
-              <div>
-                <dt>Delivery descontado</dt>
-                <dd>
-                  {loading ? "…" : `− ${money(decimal(sum("costo_delivery")))}`}
-                </dd>
-              </div>
-              {sum("costo_envio") > 0 && (
-                <div>
-                  <dt>Envíos</dt>
-                  <dd>{money(decimal(sum("costo_envio")))}</dd>
-                </div>
-              )}
-            </dl>
-          </section>
-        </div>
-      </div>
+            )}
+          </dl>
+        </section>
+      </CollapsibleSummary>
       <section
         className="panel sales-stat sales-desktop-stat"
         aria-label="Resumen de ventas"
@@ -359,30 +364,19 @@ export function SalesPage() {
                   setPhoneQuery(event.target.value);
                   setSelected([]);
                   setActionError("");
-                  setSummaryHidden(false);
-                  summaryScroll.current = { top: 0, height: 0 };
-                  salesScroll.current?.scrollTo({ top: 0 });
+                  resetSummary();
                 }}
               />
             </label>
-            <label>
-              <span className="sr-only">Filtrar ventas por dueño</span>
-              <select
-                aria-label="Filtrar ventas por dueño"
-                value={owner}
-                onChange={(e) => {
-                  setOwner(e.target.value);
-                  setActionError("");
-                }}
-              >
-                <option value="">Todos los dueños</option>
-                {owners.map((o) => (
-                  <option key={o.id_propietario} value={o.id_propietario}>
-                    {o.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <OwnerFilter
+              owners={owners}
+              label="Filtrar ventas por dueño"
+              value={owner}
+              onChange={(value) => {
+                setOwner(value);
+                setActionError("");
+              }}
+            />
             <label className="sales-desktop-date">
               <span className="sr-only">Filtrar ventas por fecha</span>
               <input
@@ -428,29 +422,26 @@ export function SalesPage() {
           </div>
         </div>
         <div
-          ref={salesScroll}
+          className="sales-status-legend"
+          aria-label="Colores de los estados de venta"
+        >
+          <span className="sale-delivered">
+            <i aria-hidden="true" />
+            Entregadas
+          </span>
+          <span className="sale-pending">
+            <i aria-hidden="true" />
+            Pendientes
+          </span>
+          <span className="sale-cancelled">
+            <i aria-hidden="true" />
+            Canceladas
+          </span>
+        </div>
+        <div
+          ref={scrollRef}
           className="sales-scroll"
-          onScroll={(event) => {
-            if (!window.matchMedia("(max-width: 767px)").matches) return;
-            const { scrollTop, clientHeight } = event.currentTarget;
-            const top = Math.max(0, scrollTop);
-            const previous = summaryScroll.current;
-            // El inicio tiene prioridad, incluso si la navegación o el resumen están animándose.
-            if (top <= 1) {
-              setSummaryHidden(false);
-              summaryScroll.current = { top, height: clientHeight };
-              return;
-            }
-            // La animación cambia la altura de la lista y puede ajustar su scroll.
-            if (previous.height && previous.height !== clientHeight) {
-              summaryScroll.current = { top, height: clientHeight };
-              return;
-            }
-            const delta = top - previous.top;
-            if (delta >= 8) setSummaryHidden(true);
-            else if (Math.abs(delta) < 8) return;
-            summaryScroll.current = { top, height: clientHeight };
-          }}
+          onScroll={onScroll}
           tabIndex={0}
           aria-label="Ventas de la fecha seleccionada"
         >
@@ -460,13 +451,15 @@ export function SalesPage() {
             </p>
           ) : (
             <>
-              <table className="sales-table">
+              <DataTable className="sales-table">
                 <colgroup>
-                  {[32, 78, 104, 116, 202, 64, 80, 100, 88, 84, 110].map(
-                    (w, i) => (
-                      <col key={i} style={{ width: w }} />
-                    ),
-                  )}
+                  {[4, 7, 10, 11, null, 6, 8, 10, 8, 8].map((w, i) => (
+                    <col
+                      key={i}
+                      style={w === null ? undefined : { width: `${w}%` }}
+                    />
+                  ))}
+                  <col className="sales-whatsapp-column" />
                 </colgroup>
                 <thead>
                   <tr>
@@ -498,10 +491,10 @@ export function SalesPage() {
                       "Entrega",
                       "Vestidos / unidades",
                       "Prendas",
-                      "Delivery +",
                       "Total / diferencia",
+                      "Delivery +",
+                      "Costo de envío",
                       "Neto",
-                      "Estado",
                       "WhatsApp",
                     ].map((h) => (
                       <th key={h}>{h}</th>
@@ -512,7 +505,8 @@ export function SalesPage() {
                   {visibleSales.map((s) => (
                     <tr
                       key={s.id_venta}
-                      className={`${selected.includes(s.id_venta) ? "selected" : ""} ${s.estado === "Cancelada" ? "sale-cancelled" : ""}`}
+                      className={`${saleStatus[s.estado].className} ${selected.includes(s.id_venta) ? "sale-picked" : ""}`}
+                      title={saleStatus[s.estado].label}
                       onClick={() => {
                         if (s.estado !== "Cancelada") toggle(s.id_venta);
                       }}
@@ -529,6 +523,10 @@ export function SalesPage() {
                       </td>
                       <th scope="row">
                         {orderNumber(s)}
+                        <span className="sr-only">
+                          {" "}
+                          · {saleStatus[s.estado].label}
+                        </span>
                         {s.tipo === "Cambio" && (
                           <small className="sale-kind">
                             Cambio
@@ -549,26 +547,26 @@ export function SalesPage() {
                         <LineList sale={s} owner={owner} />
                       </td>
                       <td>{s.total_prendas}</td>
-                      <td>{money(s.adicional_delivery)}</td>
                       <td>
                         {s.tipo === "Cambio" && !s.reemplazo_completo
                           ? differenceLabel(s.total_cobrado)
                           : money(s.total_cobrado)}
                       </td>
+                      <td>{money(s.adicional_delivery)}</td>
+                      <td>{shippingCostLabel(s)}</td>
                       <td>{money(s.monto_neto)}</td>
-                      <td>{s.estado}</td>
                       <td>
                         <WhatsApp sale={s} />
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
               <div className="sales-mobile-cards">
                 {visibleSales.map((s) => (
                   <article
                     key={s.id_venta}
-                    className={`mobile-card sale-mobile-card ${selected.includes(s.id_venta) ? "selected" : ""} ${s.estado === "Cancelada" ? "sale-cancelled" : ""}`}
+                    className={`mobile-card sale-mobile-card ${saleStatus[s.estado].className} ${selected.includes(s.id_venta) ? "sale-picked" : ""}`}
                   >
                     <button
                       className="sale-card-select"
@@ -589,7 +587,9 @@ export function SalesPage() {
                             </span>
                           )}
                         </strong>
-                        <span className="sale-status">{s.estado}</span>
+                        <span className="sale-status">
+                          {saleStatus[s.estado].label}
+                        </span>
                       </span>
                       <span className="sale-card-phone">
                         {s.cliente_celular ?? s.cliente.celular}
@@ -603,6 +603,11 @@ export function SalesPage() {
                         )}
                       </span>
                       <LineList sale={s} owner={owner} />
+                      {s.departamento_destino && s.costo_envio !== null && (
+                        <span className="sale-card-shipping">
+                          Costo de envío: {shippingCostLabel(s)}
+                        </span>
+                      )}
                     </button>
                     <footer className="sale-card-footer">
                       <div>
