@@ -2,6 +2,10 @@ import { CheckCheck, Search, X } from "lucide-react";
 import { DeliveryForm } from "../components/forms/DeliveryForm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/Button";
+import { CollapsibleSummary } from "../components/ui/CollapsibleSummary";
+import { DataTable } from "../components/ui/DataTable";
+import { OwnerFilter } from "../components/ui/OwnerFilter";
+import { useScrollSummary } from "../hooks/useScrollSummary";
 import { Modal } from "../components/ui/Modal";
 import {
   ActionResultModal,
@@ -96,9 +100,8 @@ export function SalesPage() {
     [busy, setBusy] = useState(false),
     [actionError, setActionError] = useState(""),
     [result, setResult] = useState<ActionResult | null>(null);
-  const [summaryHidden, setSummaryHidden] = useState(false);
-  const salesScroll = useRef<HTMLDivElement>(null);
-  const summaryScroll = useRef({ top: 0, height: 0 });
+  const { summaryHidden, resetSummary, scrollRef, onScroll } =
+    useScrollSummary();
   const revision = useRef(0),
     alive = useRef(false);
   const reload = useCallback(async () => {
@@ -128,8 +131,7 @@ export function SalesPage() {
   useEffect(() => {
     alive.current = true;
     setLoading(true);
-    setSummaryHidden(false);
-    summaryScroll.current = { top: 0, height: 0 };
+    resetSummary();
     setSales([]);
     setSelected([]);
     void reload();
@@ -153,7 +155,7 @@ export function SalesPage() {
       window.removeEventListener("focus", refresh);
       window.removeEventListener("online", refresh);
     };
-  }, [reload]);
+  }, [reload, resetSummary]);
   const visibleSales = sales.filter((sale) =>
     matchesCustomerPhone(sale, phoneQuery),
   );
@@ -261,67 +263,63 @@ export function SalesPage() {
   }
   return (
     <div className="sales-page">
-      <div
-        className={`sales-mobile-overview md:hidden ${summaryHidden ? "sales-overview-hidden" : ""}`}
-        aria-hidden={summaryHidden}
+      <CollapsibleSummary
+        className="sales-mobile-overview md:hidden"
+        hidden={summaryHidden}
       >
-        <div className="sales-mobile-overview-content">
-          <header className="sales-mobile-title">
-            <h1>Ventas</h1>
-            <label>
-              <span className="sr-only">Fecha de ventas</span>
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(event) => {
-                  if (event.target.value) {
-                    setDate(event.target.value);
-                    setActionError("");
-                  }
-                }}
-              />
-            </label>
-          </header>
-          <section
-            className="panel sales-mobile-summary"
-            aria-label="Resumen de ventas de la fecha seleccionada"
-          >
-            <div className="sales-mobile-net">
-              <span>
-                {owner ? "Venta neta filtrada del día" : "Venta neta del día"}
-              </span>
-              <strong>
-                {loading ? "…" : money(decimal(sum("monto_neto")))}
-              </strong>
+        <header className="sales-mobile-title">
+          <h1>Ventas</h1>
+          <label>
+            <span className="sr-only">Fecha de ventas</span>
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(event) => {
+                if (event.target.value) {
+                  setDate(event.target.value);
+                  setActionError("");
+                }
+              }}
+            />
+          </label>
+        </header>
+        <section
+          className="panel sales-mobile-summary"
+          aria-label="Resumen de ventas de la fecha seleccionada"
+        >
+          <div className="sales-mobile-net">
+            <span>
+              {owner ? "Venta neta filtrada del día" : "Venta neta del día"}
+            </span>
+            <strong>{loading ? "…" : money(decimal(sum("monto_neto")))}</strong>
+          </div>
+          <dl>
+            <div>
+              <dt>Cobrado</dt>
+              <dd>{loading ? "…" : money(decimal(sum("total_cobrado")))}</dd>
             </div>
-            <dl>
+            <div>
+              <dt>Adicional de delivery</dt>
+              <dd>
+                {loading ? "…" : money(decimal(sum("adicional_delivery")))}
+              </dd>
+            </div>
+            <div>
+              <dt>Delivery descontado</dt>
+              <dd>
+                {loading ? "…" : `− ${money(decimal(sum("costo_delivery")))}`}
+              </dd>
+            </div>
+            {sum("costo_envio") > 0 && (
               <div>
-                <dt>Cobrado</dt>
-                <dd>{loading ? "…" : money(decimal(sum("total_cobrado")))}</dd>
+                <dt>Envíos</dt>
+                <dd>{money(decimal(sum("costo_envio")))}</dd>
               </div>
-              <div>
-                <dt>Adicional de delivery</dt>
-                <dd>
-                  {loading ? "…" : money(decimal(sum("adicional_delivery")))}
-                </dd>
-              </div>
-              <div>
-                <dt>Delivery descontado</dt>
-                <dd>
-                  {loading ? "…" : `− ${money(decimal(sum("costo_delivery")))}`}
-                </dd>
-              </div>
-              {sum("costo_envio") > 0 && (
-                <div>
-                  <dt>Envíos</dt>
-                  <dd>{money(decimal(sum("costo_envio")))}</dd>
-                </div>
-              )}
-            </dl>
-          </section>
-        </div>
-      </div>
+            )}
+          </dl>
+        </section>
+      </CollapsibleSummary>
       <section
         className="panel sales-stat sales-desktop-stat"
         aria-label="Resumen de ventas"
@@ -366,30 +364,19 @@ export function SalesPage() {
                   setPhoneQuery(event.target.value);
                   setSelected([]);
                   setActionError("");
-                  setSummaryHidden(false);
-                  summaryScroll.current = { top: 0, height: 0 };
-                  salesScroll.current?.scrollTo({ top: 0 });
+                  resetSummary();
                 }}
               />
             </label>
-            <label>
-              <span className="sr-only">Filtrar ventas por dueño</span>
-              <select
-                aria-label="Filtrar ventas por dueño"
-                value={owner}
-                onChange={(e) => {
-                  setOwner(e.target.value);
-                  setActionError("");
-                }}
-              >
-                <option value="">Todos los dueños</option>
-                {owners.map((o) => (
-                  <option key={o.id_propietario} value={o.id_propietario}>
-                    {o.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <OwnerFilter
+              owners={owners}
+              label="Filtrar ventas por dueño"
+              value={owner}
+              onChange={(value) => {
+                setOwner(value);
+                setActionError("");
+              }}
+            />
             <label className="sales-desktop-date">
               <span className="sr-only">Filtrar ventas por fecha</span>
               <input
@@ -452,27 +439,9 @@ export function SalesPage() {
           </span>
         </div>
         <div
-          ref={salesScroll}
+          ref={scrollRef}
           className="sales-scroll"
-          onScroll={(event) => {
-            if (!window.matchMedia("(max-width: 767px)").matches) return;
-            const { scrollTop, clientHeight } = event.currentTarget;
-            const top = Math.max(0, scrollTop);
-            const previous = summaryScroll.current;
-            if (top <= 1) {
-              setSummaryHidden(false);
-              summaryScroll.current = { top, height: clientHeight };
-              return;
-            }
-            if (previous.height && previous.height !== clientHeight) {
-              summaryScroll.current = { top, height: clientHeight };
-              return;
-            }
-            const delta = top - previous.top;
-            if (delta >= 8) setSummaryHidden(true);
-            else if (Math.abs(delta) < 8) return;
-            summaryScroll.current = { top, height: clientHeight };
-          }}
+          onScroll={onScroll}
           tabIndex={0}
           aria-label="Ventas de la fecha seleccionada"
         >
@@ -482,7 +451,7 @@ export function SalesPage() {
             </p>
           ) : (
             <>
-              <table className="sales-table">
+              <DataTable className="sales-table">
                 <colgroup>
                   {[4, 7, 10, 11, null, 6, 8, 10, 8, 8].map((w, i) => (
                     <col
@@ -592,7 +561,7 @@ export function SalesPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </DataTable>
               <div className="sales-mobile-cards">
                 {visibleSales.map((s) => (
                   <article

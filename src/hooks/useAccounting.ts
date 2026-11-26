@@ -57,6 +57,7 @@ export function useAccounting(month: string) {
   const currentReport = report?.mes === month ? report : null;
   return {
     report: currentReport,
+    owners: report?.propietarios ?? [],
     loading: loading || (!currentReport && errorState.month !== month),
     error: errorState.month === month ? errorState.message : "",
     reload,

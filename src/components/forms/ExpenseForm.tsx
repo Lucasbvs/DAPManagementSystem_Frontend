@@ -8,11 +8,13 @@ import type { AccountingOwner, ExpenseInput } from "../../types/accounting";
 
 export function ExpenseForm({
   owners,
+  defaultOwnerId,
   month,
   onClose,
   onSaved,
 }: {
   owners: AccountingOwner[];
+  defaultOwnerId?: number;
   month: string;
   onClose: () => void;
   onSaved: (date: string) => void;
@@ -23,7 +25,10 @@ export function ExpenseForm({
     concepto: "",
     tipo: "Gasto",
     importe: "",
-    id_propietario: owners.length === 1 ? owners[0].id_propietario : 0,
+    id_propietario:
+      owners.find((owner) => owner.id_propietario === defaultOwnerId)
+        ?.id_propietario ??
+      (owners.length === 1 ? owners[0].id_propietario : 0),
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
