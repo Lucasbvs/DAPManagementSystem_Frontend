@@ -50,10 +50,10 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
   overflow: hidden;
 }
 .accounting-filters {
@@ -99,6 +99,7 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   overflow-anchor: none;
+  background: white;
 }
 .accounting-table {
   min-width: 640px;
@@ -219,9 +220,6 @@
   .accounting-stat {
     padding: 12px;
   }
-  .accounting-movements {
-    padding: 14px;
-  }
   .accounting-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -250,10 +248,7 @@
     display: none;
   }
   .accounting-movements {
-    padding: 0;
     gap: 10px;
-    background: transparent;
-    border-radius: 0;
   }
   .accounting-filters {
     gap: 8px;
@@ -272,6 +267,7 @@
   }
   .accounting-scroll {
     scrollbar-gutter: auto;
+    background: transparent;
   }
   .accounting-table {
     display: none;

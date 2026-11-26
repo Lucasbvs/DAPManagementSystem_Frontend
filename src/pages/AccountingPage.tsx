@@ -154,7 +154,6 @@ export function AccountingPage() {
           />
         </div>
         <div className="accounting-list-heading">
-          <h2 id="accounting-movements-title">Movimientos del mes</h2>
           {filteredReport && (
             <span>
               {movements.length}{" "}

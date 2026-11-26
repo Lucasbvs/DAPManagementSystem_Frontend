@@ -346,7 +346,6 @@ export function SalesPage() {
       )}
       <section className="sales-list">
         <div className="sales-list-heading">
-          <h2 className="sales-desktop-title">Ventas del día</h2>
           <div className="sales-filters">
             <label className="sales-phone-search">
               <span className="sr-only">

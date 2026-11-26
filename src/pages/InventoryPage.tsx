@@ -20,7 +20,10 @@ import type { Dress } from "../types/inventory";
 function Colors({
   dress,
   className = "",
-}: { dress: Dress; className?: string }) {
+}: {
+  dress: Dress;
+  className?: string;
+}) {
   return (
     <span className={`inventory-colors ${className}`}>
       {stockByColor(dress.variantes).map(({ color, quantity }) => (
@@ -279,7 +282,9 @@ export function InventoryPage() {
                                   element.indeterminate =
                                     selectedDresses.length > 0 && !allSelected;
                               }}
-                              disabled={loading || !!error || busy || !filtered.length}
+                              disabled={
+                                loading || !!error || busy || !filtered.length
+                              }
                               onChange={toggleAll}
                             />
                           )}
@@ -444,7 +449,9 @@ export function InventoryPage() {
             setResult({
               title: edited
                 ? "Vestido editado"
-                : reactivated ? "Vestido reactivado" : "Vestido creado",
+                : reactivated
+                  ? "Vestido reactivado"
+                  : "Vestido creado",
               message: edited
                 ? "Los cambios del vestido se guardaron correctamente."
                 : reactivated
@@ -477,7 +484,8 @@ export function InventoryPage() {
           <p className="my-3 text-sm text-muted">
             Los vestidos con ventas se archivarán para conservar su historial.
             Al registrar otro vestido con el mismo nombre, se reactivarán con
-            los nuevos datos. Los vestidos sin ventas se eliminarán definitivamente.
+            los nuevos datos. Los vestidos sin ventas se eliminarán
+            definitivamente.
           </p>
           {deleteError && (
             <p role="alert" className="error">
