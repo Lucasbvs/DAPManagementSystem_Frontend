@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Plus, Check, Search } from "lucide-react";
+import { Pencil, Trash2, Plus, Check, CheckCheck, Search } from "lucide-react";
 import { useState } from "react";
 import { useInventory } from "../hooks/useInventory";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -17,9 +17,12 @@ import { inventoryApi } from "../services/inventory.api";
 import { errorMessage } from "../services/api";
 import { LOW_STOCK_LIMIT, stockByColor } from "../services/inventoryRules";
 import type { Dress } from "../types/inventory";
-function Colors({ dress }: { dress: Dress }) {
+function Colors({
+  dress,
+  className = "",
+}: { dress: Dress; className?: string }) {
   return (
-    <span className="inventory-colors">
+    <span className={`inventory-colors ${className}`}>
       {stockByColor(dress.variantes).map(({ color, quantity }) => (
         <span
           key={color}
@@ -63,9 +66,14 @@ export function InventoryPage() {
       .toLocaleLowerCase()
       .includes(search),
   );
-  const selectedDresses = dresses.filter((d) =>
+  const selectedDresses = filtered.filter((d) =>
     selected.includes(d.id_vestido),
   );
+  const allSelected =
+    filtered.length > 0 && selectedDresses.length === filtered.length;
+  function toggleAll() {
+    setSelected(allSelected ? [] : filtered.map((d) => d.id_vestido));
+  }
   const dress = selectedDresses.length === 1 ? selectedDresses[0] : undefined;
   function toggle(id: number) {
     setSelected((current) =>
@@ -76,7 +84,7 @@ export function InventoryPage() {
   }
   const low = ownerDresses.filter((d) => d.stock_total <= LOW_STOCK_LIMIT);
   async function remove() {
-    if (!selectedDresses.length) return;
+    if (busy || !selectedDresses.length) return;
     setBusy(true);
     setDeleteError("");
     const removed: number[] = [],
@@ -101,8 +109,8 @@ export function InventoryPage() {
           removed.length === 1 ? "Vestido eliminado" : "Vestidos eliminados",
         message:
           removed.length === 1
-            ? "El vestido se eliminó correctamente."
-            : `Los ${removed.length} vestidos se eliminaron correctamente.`,
+            ? "El vestido se retiró del inventario. Su historial de ventas se conserva."
+            : `Los ${removed.length} vestidos se retiraron del inventario. Su historial de ventas se conserva.`,
       });
     }
     await reload();
@@ -209,6 +217,20 @@ export function InventoryPage() {
             }}
           />
         </div>
+        <div className="inventory-selection-bar">
+          <Button
+            className="inventory-select-all"
+            disabled={loading || !!error || busy || !filtered.length}
+            aria-pressed={allSelected}
+            onClick={toggleAll}
+          >
+            <CheckCheck size={18} aria-hidden="true" />
+            {allSelected ? "Deseleccionar todos" : "Seleccionar todos"}
+          </Button>
+          <span role="status">
+            {selectedDresses.length} de {filtered.length} seleccionados
+          </span>
+        </div>
         <div
           className="inventory-scroll"
           ref={scrollRef}
@@ -247,7 +269,20 @@ export function InventoryPage() {
                         "Dueño de la prenda",
                       ].map((h, i) => (
                         <th key={i} scope="col">
-                          {h || <span className="sr-only">Seleccionar</span>}
+                          {h || (
+                            <input
+                              type="checkbox"
+                              aria-label="Seleccionar todos los vestidos visibles"
+                              checked={allSelected}
+                              ref={(element) => {
+                                if (element)
+                                  element.indeterminate =
+                                    selectedDresses.length > 0 && !allSelected;
+                              }}
+                              disabled={loading || !!error || busy || !filtered.length}
+                              onChange={toggleAll}
+                            />
+                          )}
                         </th>
                       ))}
                     </tr>
@@ -303,7 +338,7 @@ export function InventoryPage() {
                     key={d.id_vestido}
                     aria-pressed={selected.includes(d.id_vestido)}
                     onClick={() => toggle(d.id_vestido)}
-                    className={`mobile-card inventory-dress-card ${selected.includes(d.id_vestido) ? "selected" : ""}`}
+                    className={`mobile-card inventory-dress-card ${selected.includes(d.id_vestido) ? "selected" : ""} ${d.stock_total <= LOW_STOCK_LIMIT ? "inventory-stock-low" : ""}`}
                   >
                     <span className="inventory-dress-heading">
                       <strong>{d.nombre}</strong>
@@ -323,13 +358,7 @@ export function InventoryPage() {
                         </span>
                       )}
                     </span>
-                    <span className="inventory-dress-colors">
-                      {stockByColor(d.variantes).map(({ color, quantity }) => (
-                        <span key={color}>
-                          {color} · <strong>{quantity}</strong>
-                        </span>
-                      ))}
-                    </span>
+                    <Colors dress={d} className="inventory-dress-colors" />
                     <span className="inventory-dress-details">
                       <span>
                         Ubicación:{" "}
@@ -408,14 +437,19 @@ export function InventoryPage() {
           dress={modal === "edit" ? dress : undefined}
           owners={owners}
           onClose={() => setModal(null)}
-          onSaved={() => {
+          onSaved={(reactivated) => {
             const edited = modal === "edit";
             setModal(null);
+            setSelected([]);
             setResult({
-              title: edited ? "Vestido editado" : "Vestido creado",
+              title: edited
+                ? "Vestido editado"
+                : reactivated ? "Vestido reactivado" : "Vestido creado",
               message: edited
                 ? "Los cambios del vestido se guardaron correctamente."
-                : "El vestido se registró correctamente.",
+                : reactivated
+                  ? "El vestido volvió al inventario con los nuevos datos y existencias."
+                  : "El vestido se registró correctamente.",
             });
             void reload();
           }}
@@ -438,10 +472,12 @@ export function InventoryPage() {
                 ? selectedDresses[0].nombre
                 : `${selectedDresses.length} vestidos seleccionados`}
             </strong>{" "}
-            y todas sus variantes? Esta acción no se puede deshacer.
+            del inventario?
           </p>
           <p className="my-3 text-sm text-muted">
-            Si tiene ventas registradas, la eliminación será rechazada.
+            Los vestidos con ventas se archivarán para conservar su historial.
+            Al registrar otro vestido con el mismo nombre, se reactivarán con
+            los nuevos datos. Los vestidos sin ventas se eliminarán definitivamente.
           </p>
           {deleteError && (
             <p role="alert" className="error">

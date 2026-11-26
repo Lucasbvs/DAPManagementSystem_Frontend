@@ -11,7 +11,14 @@ export const inventoryApi = {
   owners: async () =>
     unwrap((await api.get<ApiResponse<Owner[]>>("/propietarios")).data),
   create: async (input: DressInput) =>
-    unwrap((await api.post<ApiResponse<Dress>>("/vestidos", input)).data),
+    unwrap(
+      (
+        await api.post<ApiResponse<Dress & { reactivado?: boolean }>>(
+          "/vestidos",
+          input,
+        )
+      ).data,
+    ),
   update: async (id: number, input: DressInput) =>
     unwrap((await api.put<ApiResponse<Dress>>(`/vestidos/${id}`, input)).data),
   remove: async (id: number) =>

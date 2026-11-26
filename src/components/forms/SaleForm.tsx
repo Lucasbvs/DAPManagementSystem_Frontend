@@ -106,21 +106,51 @@ export function SaleForm({
   const paidShipping = shipping && payment === "Pagado";
   const total = Object.values(quantities).reduce((n, q) => n + q, 0),
     tariff = total >= 6 ? "media_docena" : total >= 3 ? "cuarta" : "unitario";
-  const variants = dresses.flatMap((d) =>
+  const catalogVariants = dresses.flatMap((d) =>
     d.variantes.map((v) => ({
       dress: d,
       variant: v,
       id: v.id_variante!,
+      archived: false,
       available:
         v.cantidad_stock +
         (sale?.detalles.find((x) => x.id_variante === v.id_variante)
           ?.cantidad ?? 0),
     })),
   );
+  // Un vestido archivado sigue formando parte del pedido que ya lo reservó.
+  const variants = [
+    ...catalogVariants,
+    ...(sale?.detalles ?? [])
+      .filter((line) => !catalogVariants.some((v) => v.id === line.id_variante))
+      .map((line) => ({
+        id: line.id_variante,
+        archived: true,
+        available: line.cantidad,
+        dress: {
+          nombre: line.nombre_vestido ?? line.variante.vestido.nombre,
+          descripcion: "Prenda archivada de este pedido",
+          precio_unitario: line.precio_unitario_aplicado,
+          precio_cuarta: null,
+          precio_media_docena: null,
+          id_propietario:
+            line.id_propietario_venta ?? line.variante.vestido.id_propietario,
+          propietario: {
+            nombre:
+              line.propietario_nombre ??
+              line.variante.vestido.propietario.nombre,
+          },
+        },
+        variant: {
+          color: line.color ?? line.variante.color,
+          talla: line.talla,
+        },
+      })),
+  ];
   const chosen = variants.filter((v) => quantities[v.id] > 0);
   const price = (v: (typeof variants)[number]) => {
     const old = sale?.detalles.find((d) => d.id_variante === v.id);
-    if (old && sale?.tarifa_aplicada === tariff)
+    if (old && (v.archived || sale?.tarifa_aplicada === tariff))
       return cents(old.precio_unitario_aplicado);
     return cents(
       (total >= 6
@@ -283,7 +313,10 @@ export function SaleForm({
                           {v.variant.color}
                           {v.variant.talla
                             ? ` · ${v.variant.talla}`
-                            : ""} · {v.available} disponibles
+                            : ""} · {v.available}{" "}
+                          {v.archived
+                            ? "reservados · Archivado"
+                            : "disponibles"}
                         </span>
                         <span className="block text-sm">
                           {money(decimal(price(v)))} por prenda

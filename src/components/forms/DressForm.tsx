@@ -22,7 +22,7 @@ export function DressForm({
   dress?: Dress;
   owners: Owner[];
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (reactivated?: boolean) => void;
 }) {
   const [form, setForm] = useState<DressInput>(
     dress
@@ -126,9 +126,13 @@ export function DressForm({
         precio_cuarta: form.precio_cuarta?.trim() || null,
         precio_media_docena: form.precio_media_docena?.trim() || null,
       };
-      if (dress) await inventoryApi.update(dress.id_vestido, payload);
-      else await inventoryApi.create(payload);
-      onSaved();
+      if (dress) {
+        await inventoryApi.update(dress.id_vestido, payload);
+        onSaved();
+      } else {
+        const saved = await inventoryApi.create(payload);
+        onSaved(saved.reactivado);
+      }
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
